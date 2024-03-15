@@ -23,6 +23,11 @@ func main() {
 		logger.Fatal("failed to load supported coins", zap.Error(err))
 	}
 
+	logger.Info("Loading available pairs")
+	if err := conf.Service.InitializePairs(); err != nil {
+		logger.Fatal("failed initializing coin pairs", zap.Error(err))
+	}
+
 	err := conf.ProcessPriceGetter.Run(context.Background())
 	if err != nil {
 		logger.Fatal("Failed running price getter process", zap.Error(err))

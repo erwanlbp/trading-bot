@@ -11,11 +11,11 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
-func LoadCoins(enabledCoins []string, logger *log.Logger, repository *repository.Repository) error {
+func LoadCoins(enabledCoins []string, logger *log.Logger, repo *repository.Repository) error {
 
 	logger.Info(fmt.Sprintf("Found %d supported coins in config file", len(enabledCoins)))
 
-	existingCoins, err := repository.GetAllCoins()
+	existingCoins, err := repo.GetAllCoins()
 	if err != nil {
 		return fmt.Errorf("failed fetching existing coins from DB: %w", err)
 	}
@@ -32,11 +32,11 @@ func LoadCoins(enabledCoins []string, logger *log.Logger, repository *repository
 			newAllCoins = append(newAllCoins, existingCoin)
 		}
 	}
-	if err := repository.DB.Transaction(func(tx *gorm.DB) error {
-		if err := repository.DeleteAllCoins(tx); err != nil {
+	if err := repo.DB.Transaction(func(tx *gorm.DB) error {
+		if err := repo.DeleteAllCoins(tx); err != nil {
 			return fmt.Errorf("failed deleting all coins: %w", err)
 		}
-		if err := repository.UpsertCoin(tx, newAllCoins...); err != nil {
+		if err := repository.SimpleUpsert(repo, tx, newAllCoins...); err != nil {
 			return fmt.Errorf("failed updating coins: %w", err)
 		}
 		return nil

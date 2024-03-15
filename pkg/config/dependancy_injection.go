@@ -9,6 +9,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/process"
 	"github.com/erwanlbp/trading-bot/pkg/repository.go"
+	"github.com/erwanlbp/trading-bot/pkg/service"
 )
 
 type Config struct {
@@ -18,6 +19,8 @@ type Config struct {
 
 	DB         *db.DB
 	Repository *repository.Repository
+
+	Service *service.Service
 
 	BinanceClient *binance.Client
 
@@ -46,6 +49,8 @@ func Init() *Config {
 	conf.DB = db.NewDB(sqliteDb)
 
 	conf.Repository = repository.NewRepository(conf.DB)
+
+	conf.Service = service.NewService(conf.Logger, conf.Repository)
 
 	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository)
 
