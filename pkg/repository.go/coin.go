@@ -13,6 +13,16 @@ func (r *Repository) GetAllCoins() ([]model.Coin, error) {
 	return res, err
 }
 
+func (r *Repository) GetEnabledCoins() ([]string, error) {
+	var res []string
+	err := r.DB.
+		Select("coin").
+		Table(model.CoinTableName).
+		Where("enabled = ?", true).
+		Find(&res).Error
+	return res, err
+}
+
 func (r *Repository) DeleteAllCoins(tx *gorm.DB) error {
 	return tx.Exec("DELETE FROM " + model.CoinTableName).Error
 }

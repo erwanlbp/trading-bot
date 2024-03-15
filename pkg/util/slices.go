@@ -21,3 +21,11 @@ func Exists[T any](slice []T, finder Predicate[T]) bool {
 	}
 	return false
 }
+
+func Map[T, V any](slice []T, mapper Mapper[T, V]) []V {
+	var res []V = make([]V, len(slice))
+	for i, e := range slice {
+		res[i] = mapper(e)
+	}
+	return res
+}

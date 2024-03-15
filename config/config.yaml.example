@@ -1,0 +1,16 @@
+# Rename this file to config.yaml and set your config
+
+# Binance API Key
+binance:
+  api_key: <api_key>
+  api_key_secret: <api_secret>
+  # com or us, depending on region
+  tld: com
+
+bridge: USDT
+
+# Coins that the bot can jump to
+coins:
+  - AVAX
+  - SOL
+  - STRK

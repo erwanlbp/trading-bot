@@ -2,10 +2,7 @@ package config
 
 import (
 	"fmt"
-	"io"
-	"os"
 
-	yaml "gopkg.in/yaml.v3"
 	"gorm.io/gorm"
 
 	"github.com/erwanlbp/trading-bot/pkg/log"
@@ -14,30 +11,9 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
-func LoadCoins(logger *log.Logger, repository *repository.Repository) error {
+func LoadCoins(enabledCoins []string, logger *log.Logger, repository *repository.Repository) error {
 
-	// Read coins file
-
-	filepath := "config/coins.yaml" // TODO Get it more dynamically ?
-	file, err := os.Open(filepath)
-	if err != nil {
-		return fmt.Errorf("failed opening file: %w", err)
-	}
-
-	content, err := io.ReadAll(file)
-	if err != nil {
-		return fmt.Errorf("failed reading supported coins file: %w", err)
-	}
-
-	var data struct {
-		Coins []string
-	}
-	if err := yaml.Unmarshal(content, &data); err != nil {
-		return fmt.Errorf("failed unmarshaling coins: %w", err)
-	}
-	logger.Info(fmt.Sprintf("Found %d supported coins", len(data.Coins)))
-
-	// Update coins in DB
+	logger.Info(fmt.Sprintf("Found %d supported coins in config file", len(enabledCoins)))
 
 	existingCoins, err := repository.GetAllCoins()
 	if err != nil {
@@ -46,7 +22,7 @@ func LoadCoins(logger *log.Logger, repository *repository.Repository) error {
 
 	var newAllCoins []model.Coin
 	// All coins in the supported coins file are enabled
-	for _, coin := range data.Coins {
+	for _, coin := range enabledCoins {
 		newAllCoins = append(newAllCoins, model.Coin{Coin: coin, Enabled: true})
 	}
 	// All coins that were previously in DB are now disabled
