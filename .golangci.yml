@@ -1,0 +1,12 @@
+linters-settings:
+  lll:
+    line-length: 150
+
+issues:
+  exclude-rules:
+    - linters:
+        - go-lint
+      text: "exported type .* should have comment or be unexported"
+    - linters:
+        - staticcheck
+      text: "SA1019:" # disable 'is deprecated' check as we may have to use deprecated code for retrocompatibility
