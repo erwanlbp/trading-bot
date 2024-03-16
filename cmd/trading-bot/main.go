@@ -28,8 +28,11 @@ func main() {
 		logger.Fatal("failed initializing coin pairs", zap.Error(err))
 	}
 
-	err := conf.ProcessPriceGetter.Run(context.Background())
-	if err != nil {
-		logger.Fatal("Failed running price getter process", zap.Error(err))
-	}
+	logger.Info("Starting coins price getter process")
+	conf.ProcessPriceGetter.Start(context.Background())
+
+	logger.Info("Starting price logger process")
+	conf.ProcessPriceLogger.Start(context.Background())
+
+	<-make(chan int)
 }

@@ -16,9 +16,15 @@ type CoinPrice struct {
 	Timestamp time.Time
 }
 
-func (c *Client) GetCoinsPrice(ctx context.Context, coins []string, altCoin string) ([]CoinPrice, error) {
+func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) ([]CoinPrice, error) {
 
-	symbols := util.Map(coins, func(c string) string { return util.Symbol(c, altCoin) })
+	var symbols []string
+
+	for _, coin := range coins {
+		for _, altCoin := range altCoins {
+			symbols = append(symbols, util.Symbol(coin, altCoin))
+		}
+	}
 
 	prices, err := c.client.NewListPricesService().Symbols(symbols).Do(ctx)
 	if err != nil {
@@ -28,7 +34,7 @@ func (c *Client) GetCoinsPrice(ctx context.Context, coins []string, altCoin stri
 
 	var res []CoinPrice
 	for _, price := range prices {
-		coin, altCoin, err := util.Unsymbol(price.Symbol, coins, altCoin)
+		coin, altCoin, err := util.Unsymbol(price.Symbol, coins, altCoins)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't unsymbol %s: %w", price.Symbol, err)
 		}

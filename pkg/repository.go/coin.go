@@ -25,3 +25,12 @@ func (r *Repository) GetEnabledCoins() ([]string, error) {
 func (r *Repository) DeleteAllCoins(tx *gorm.DB) error {
 	return tx.Exec("DELETE FROM " + model.CoinTableName).Error
 }
+
+func (r *Repository) GetCoinsLastPrice() ([]model.CoinPrice, error) {
+
+	lastTimestampQuery := r.DB.Select("MAX(timestamp)").Table(model.CoinPriceTableName)
+
+	var res []model.CoinPrice
+	err := r.DB.Where("timestamp = (?)", lastTimestampQuery).Find(&res).Error
+	return res, err
+}

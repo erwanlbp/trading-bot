@@ -6,6 +6,7 @@ require (
 	github.com/WinterYukky/gorm-extra-clause-plugin v0.2.0
 	github.com/adshao/go-binance/v2 v2.4.5
 	github.com/jinzhu/gorm v1.9.16
+	github.com/prprprus/scheduler v0.5.0
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/sqlite v1.5.5

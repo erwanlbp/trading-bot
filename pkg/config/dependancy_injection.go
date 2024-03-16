@@ -6,6 +6,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/binance"
 	"github.com/erwanlbp/trading-bot/pkg/db"
 	"github.com/erwanlbp/trading-bot/pkg/db/sqlite"
+	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/process"
 	"github.com/erwanlbp/trading-bot/pkg/repository.go"
@@ -22,9 +23,12 @@ type Config struct {
 
 	Service *service.Service
 
+	EventBus *eventbus.Bus
+
 	BinanceClient *binance.Client
 
 	ProcessPriceGetter *process.PriceGetter
+	ProcessPriceLogger *process.PriceLogger
 }
 
 func Init() *Config {
@@ -50,9 +54,12 @@ func Init() *Config {
 
 	conf.Repository = repository.NewRepository(conf.DB)
 
+	conf.EventBus = eventbus.NewEventBus()
+
 	conf.Service = service.NewService(conf.Logger, conf.Repository)
 
-	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository)
+	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, AltCoins)
+	conf.ProcessPriceLogger = process.NewPriceLogger(conf.Logger, conf.Repository, conf.EventBus)
 
 	return &conf
 }

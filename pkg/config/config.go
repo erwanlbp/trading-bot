@@ -11,6 +11,9 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
+// Coins for which we'll get the price, to have the value evolution
+var AltCoins = []string{"USDT", "BTC"}
+
 func LoadCoins(enabledCoins []string, logger *log.Logger, repo *repository.Repository) error {
 
 	logger.Info(fmt.Sprintf("Found %d supported coins in config file", len(enabledCoins)))
