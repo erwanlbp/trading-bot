@@ -28,6 +28,9 @@ data/*.db
 # Config files
 config/*.yaml
 
+# Intellij
+/.idea
+
 # Binaries
 trading-bot
 balances
