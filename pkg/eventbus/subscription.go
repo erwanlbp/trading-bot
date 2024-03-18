@@ -19,4 +19,12 @@ func newSubscription(events []Event) *Subscription {
 
 func (s *Subscription) Close() {
 	s.closed = true
+	close(s.EventsCh)
+}
+
+// If events is not provided, will be all events for this subscription
+func (s *Subscription) Handler(handler func(Event)) {
+	for ev := range s.EventsCh {
+		handler(ev)
+	}
 }

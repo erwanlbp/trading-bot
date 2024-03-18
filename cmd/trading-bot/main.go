@@ -28,11 +28,17 @@ func main() {
 		logger.Fatal("failed initializing coin pairs", zap.Error(err))
 	}
 
-	logger.Info("Starting coins price getter process")
-	conf.ProcessPriceGetter.Start(context.Background())
+	// TODO Have a clean exit plan, catch SIGTERM and cancel ctx
+	ctx := context.Background()
+
+	logger.Info("Starting pairs ratio calculater process")
+	conf.ProcessPairRatioer.Start(ctx)
 
 	logger.Info("Starting price logger process")
-	conf.ProcessPriceLogger.Start(context.Background())
+	conf.ProcessPriceLogger.Start(ctx)
+
+	logger.Info("Starting coins price getter process")
+	conf.ProcessPriceGetter.Start(ctx)
 
 	<-make(chan int)
 }

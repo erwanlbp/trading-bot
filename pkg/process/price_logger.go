@@ -6,6 +6,7 @@ import (
 
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 	"github.com/erwanlbp/trading-bot/pkg/log"
+	"github.com/erwanlbp/trading-bot/pkg/model"
 	"github.com/erwanlbp/trading-bot/pkg/repository.go"
 	"go.uber.org/zap"
 )
@@ -36,14 +37,23 @@ func (p *PriceLogger) Start(ctx context.Context) {
 			select {
 			case <-sub.EventsCh:
 
-				lastPrices, err := p.Repository.GetCoinsLastPrice()
+				lastPrices, err := p.Repository.GetCoinsLastPrice("")
 				if err != nil {
 					logger.Error("Failed to get coins last price", zap.Error(err))
 					continue
 				}
 
+				var groupedByCoin map[string][]model.CoinPrice = make(map[string][]model.CoinPrice)
 				for _, coinPrice := range lastPrices {
-					logger.Debug(fmt.Sprintf("Symbol %s/%s last price: %f", coinPrice.Coin, coinPrice.AltCoin, coinPrice.Price))
+					groupedByCoin[coinPrice.Coin] = append(groupedByCoin[coinPrice.Coin], coinPrice)
+				}
+
+				for coin, coinPrices := range groupedByCoin {
+					log := fmt.Sprintf("Coin %s last price: ", coin)
+					for _, coinPrice := range coinPrices {
+						log = fmt.Sprintf("%s %s:%f", log, coinPrice.AltCoin, coinPrice.Price)
+					}
+					logger.Debug(log)
 				}
 			case <-ctx.Done():
 				return

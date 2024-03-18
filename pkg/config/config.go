@@ -39,7 +39,7 @@ func LoadCoins(enabledCoins []string, logger *log.Logger, repo *repository.Repos
 		if err := repo.DeleteAllCoins(tx); err != nil {
 			return fmt.Errorf("failed deleting all coins: %w", err)
 		}
-		if err := repository.SimpleUpsert(repo, tx, newAllCoins...); err != nil {
+		if err := repository.SimpleUpsert(tx, newAllCoins...); err != nil {
 			return fmt.Errorf("failed updating coins: %w", err)
 		}
 		return nil

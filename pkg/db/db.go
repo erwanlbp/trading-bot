@@ -19,7 +19,8 @@ func NewDB(db *gorm.DB) *DB {
 func (d *DB) MigrateSchema() error {
 	return d.DB.AutoMigrate(
 		model.Coin{},
-		model.Pair{},
 		model.CoinPrice{},
+		model.Pair{},
+		model.PairHistory{},
 	)
 }

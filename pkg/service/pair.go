@@ -17,7 +17,7 @@ func (s *Service) InitializePairs() error {
 		return fmt.Errorf("failed getting enabled coins: %w", err)
 	}
 
-	allPairs, err := s.Repository.GetAllPairs()
+	allPairs, err := s.Repository.GetPairs()
 	if err != nil {
 		return fmt.Errorf("failed getting existing pairs: %w", err)
 	}
@@ -36,7 +36,7 @@ func (s *Service) InitializePairs() error {
 	}
 
 	if err := s.Repository.DB.Transaction(func(tx *gorm.DB) error {
-		return repository.SimpleUpsert(s.Repository, tx, newPairs...)
+		return repository.SimpleUpsert(tx, newPairs...)
 	}); err != nil {
 		return fmt.Errorf("failed saving: %w", err)
 	}
