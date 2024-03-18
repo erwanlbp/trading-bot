@@ -1,10 +1,34 @@
 package repository
 
 import (
+	"fmt"
+
 	"gorm.io/gorm"
 
 	"github.com/erwanlbp/trading-bot/pkg/model"
 )
+
+// TODO Bof
+func (r *Repository) GetLastJump() (model.Jump, error) {
+	var res model.Jump
+	err := r.DB.Order("timestamp desc").Limit(1).Find(&res).Error
+	if err != nil {
+		return res, err
+	}
+	if res.ToCoin != "" {
+		return res, nil
+	}
+
+	// Default case, get start coin from config
+	if r.StartCoin != nil {
+		return model.Jump{
+			ToCoin: *r.StartCoin,
+		}, nil
+	}
+
+	// TODO find a default current coin another way ?
+	return res, fmt.Errorf("no last jump found and no start coin in config")
+}
 
 func (r *Repository) GetAllCoins() ([]model.Coin, error) {
 	var res []model.Coin

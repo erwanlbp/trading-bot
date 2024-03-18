@@ -9,6 +9,8 @@ type CoinPrice struct {
 	AltCoin   string    `gorm:"primaryKey"`
 	Timestamp time.Time `gorm:"primaryKey"`
 	Price     float64
+
+	CoinRef Coin `gorm:"foreignKey:Coin;references:Coin"`
 }
 
 func (CoinPrice) TableName() string {

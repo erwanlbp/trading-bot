@@ -3,6 +3,7 @@ package process
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/prprprus/scheduler"
 	"go.uber.org/zap"
@@ -40,6 +41,11 @@ func (p *PriceGetter) Start(ctx context.Context) {
 
 		id := Scheduler.Every().Second(0).Do(p.FetchCoinsPrices, ctx)
 
+		// To avoid waiting too long before first fetch
+		if time.Now().Second() < 20 {
+			p.FetchCoinsPrices(context.Background())
+		}
+
 		// If ctx is canceled, we'll stop the job
 		<-ctx.Done()
 
@@ -63,6 +69,7 @@ func (p *PriceGetter) FetchCoinsPrices(ctx context.Context) {
 	prices, err := p.BinanceClient.GetCoinsPrice(ctx, coins, p.AltCoins)
 	if err != nil {
 		logger.Error("Failed to get coins prices", zap.Error(err))
+		return
 	}
 
 	var models []model.CoinPrice

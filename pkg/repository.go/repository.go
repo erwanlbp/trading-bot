@@ -9,12 +9,14 @@ import (
 )
 
 type Repository struct {
-	DB *db.DB
+	DB        *db.DB
+	StartCoin *string
 }
 
-func NewRepository(db *db.DB) *Repository {
+func NewRepository(db *db.DB, sc *string) *Repository {
 	return &Repository{
-		DB: db,
+		DB:        db,
+		StartCoin: sc,
 	}
 }
 

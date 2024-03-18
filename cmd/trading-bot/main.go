@@ -31,11 +31,8 @@ func main() {
 	// TODO Have a clean exit plan, catch SIGTERM and cancel ctx
 	ctx := context.Background()
 
-	logger.Info("Starting pairs ratio calculater process")
-	conf.ProcessPairRatioer.Start(ctx)
-
-	logger.Info("Starting price logger process")
-	conf.ProcessPriceLogger.Start(ctx)
+	logger.Info("Starting jump finder process")
+	conf.ProcessJumpFinder.Start(ctx)
 
 	logger.Info("Starting coins price getter process")
 	conf.ProcessPriceGetter.Start(ctx)
