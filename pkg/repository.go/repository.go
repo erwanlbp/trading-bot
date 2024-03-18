@@ -18,7 +18,9 @@ func NewRepository(db *db.DB) *Repository {
 	}
 }
 
-func SimpleUpsert[T schema.Tabler](r *Repository, tx *gorm.DB, data ...T) error {
+type QueryFilter func(*gorm.DB) *gorm.DB
+
+func SimpleUpsert[T schema.Tabler](tx *gorm.DB, data ...T) error {
 	if len(data) == 0 {
 		return nil
 	}

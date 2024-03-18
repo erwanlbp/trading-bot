@@ -29,6 +29,7 @@ type Config struct {
 
 	ProcessPriceGetter *process.PriceGetter
 	ProcessPriceLogger *process.PriceLogger
+	ProcessPairRatioer *process.PairRatioer
 }
 
 func Init() *Config {
@@ -60,6 +61,7 @@ func Init() *Config {
 
 	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, AltCoins)
 	conf.ProcessPriceLogger = process.NewPriceLogger(conf.Logger, conf.Repository, conf.EventBus)
+	conf.ProcessPairRatioer = process.NewPairRatioer(conf.Logger, conf.Repository, conf.EventBus)
 
 	return &conf
 }

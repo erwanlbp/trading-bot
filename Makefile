@@ -1,5 +1,5 @@
 # Start the bot
-run-trading-bot:
+run:
 	go run cmd/trading-bot/main.go
 
 # Detect linting errors
