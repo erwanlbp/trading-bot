@@ -18,7 +18,7 @@ go mod tidy
 Start the bot
 
 ```bash
-make run-trading-bot
+make run
 ```
 
 Other commands can be found in the [Makefile](Makefile)
