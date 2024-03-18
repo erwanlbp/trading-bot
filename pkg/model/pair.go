@@ -21,11 +21,11 @@ func (Pair) TableName() string {
 }
 
 type PairHistory struct {
-	ID        uint      `gorm:"primaryKey"`
+	PairID    uint      `gorm:"primaryKey"`
 	Timestamp time.Time `gorm:"primaryKey"`
 	Ratio     float64
 
-	Pair Pair `gorm:"foreignKey:id"`
+	Pair Pair `gorm:"foreignKey:PairID;references:ID"`
 }
 
 func (PairHistory) TableName() string {

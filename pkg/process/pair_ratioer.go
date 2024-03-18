@@ -66,7 +66,7 @@ func (p *PairRatioer) CalculateRatios(_ eventbus.Event) {
 			ratio := coinFromPrice.Price / coinToPrice.Price
 
 			history := model.PairHistory{
-				ID:        pair.ID,
+				PairID:    pair.ID,
 				Timestamp: now,
 				Ratio:     ratio,
 			}

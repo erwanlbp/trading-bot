@@ -21,7 +21,9 @@
 go.work
 
 # sqlitebrowser stuff
-data/
+data/*.sql
+data/config/
+data/*.db
 
 # Config files
 config/*.yaml
