@@ -1,6 +1,6 @@
 # Rename this file to config.yaml and set your config
 
-# Binance API Key
+# Binance API Key (create a Sub Account ?)
 binance:
   api_key: <api_key>
   api_key_secret: <api_secret>
@@ -19,7 +19,9 @@ coins:
 start_coin: AVAX
 
 jump:
-  when_gain: 3 # %
-  # Or
-  decrease_by: 0.5 # %
-  after: 4h # Go time.Duration
+  when_gain: 0.5 # %
+  # Or ⬇️
+  decrease_by: 0.1 # %
+  after: 2m # Go time.Duration
+  # But gain cannot go below ⬇️
+  min: 0.1 # %

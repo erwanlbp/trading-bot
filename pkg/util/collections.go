@@ -22,6 +22,10 @@ func Exists[T any](slice []T, finder Predicate[T]) bool {
 	return false
 }
 
+func Identity[T any](t T) T {
+	return t
+}
+
 func Map[T, V any](slice []T, mapper Mapper[T, V]) []V {
 	var res []V = make([]V, len(slice))
 	for i, e := range slice {
