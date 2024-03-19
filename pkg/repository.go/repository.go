@@ -5,18 +5,19 @@ import (
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
 
+	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 	"github.com/erwanlbp/trading-bot/pkg/db"
 )
 
 type Repository struct {
-	DB        *db.DB
-	StartCoin *string
+	DB         *db.DB
+	ConfigFile *configfile.ConfigFile
 }
 
-func NewRepository(db *db.DB, sc *string) *Repository {
+func NewRepository(db *db.DB, cf *configfile.ConfigFile) *Repository {
 	return &Repository{
-		DB:        db,
-		StartCoin: sc,
+		DB:         db,
+		ConfigFile: cf,
 	}
 }
 

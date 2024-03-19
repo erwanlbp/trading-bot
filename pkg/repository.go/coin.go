@@ -20,9 +20,9 @@ func (r *Repository) GetLastJump() (model.Jump, error) {
 	}
 
 	// Default case, get start coin from config
-	if r.StartCoin != nil {
+	if r.ConfigFile.StartCoin != nil {
 		return model.Jump{
-			ToCoin: *r.StartCoin,
+			ToCoin: *r.ConfigFile.StartCoin,
 		}, nil
 	}
 

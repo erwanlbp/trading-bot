@@ -1,4 +1,4 @@
-package config
+package configfile
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/shopspring/decimal"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -20,11 +21,42 @@ type ConfigFile struct {
 
 	StartCoin *string `yaml:"start_coin"`
 
-	Jump struct {
-		WhenGain   float64       `yaml:"when_gain"`
-		DecreaseBy float64       `yaml:"decrease_by"`
-		After      time.Duration `yaml:"after"`
-	} `yaml:"jump"`
+	Jump Jump `yaml:"jump"`
+}
+
+type Jump struct {
+	WhenGain   decimal.Decimal `yaml:"when_gain"`
+	DecreaseBy decimal.Decimal `yaml:"decrease_by"`
+	After      time.Duration   `yaml:"after"`
+	Min        decimal.Decimal `yaml:"min"`
+
+	// Will contains bot start time
+	DefaultLastJump time.Time `yaml:"-"`
+}
+
+// Return needed ratio (between 0 and 1)
+func (j Jump) GetNeededGain(lastJump time.Time) decimal.Decimal {
+	gain := j.WhenGain
+
+	if lastJump.IsZero() {
+		lastJump = j.DefaultLastJump
+	}
+
+	t := time.Now()
+	for {
+		t = t.Add(-j.After)
+		if lastJump.Before(t) {
+			gain = gain.Sub(j.DecreaseBy)
+			if gain.LessThanOrEqual(j.Min) {
+				gain = j.Min
+				break
+			}
+		} else {
+			break
+		}
+	}
+
+	return gain.Div(decimal.NewFromInt(100))
 }
 
 func ParseConfigFile() (ConfigFile, error) {
@@ -49,6 +81,8 @@ func ParseConfigFile() (ConfigFile, error) {
 	// To debug if the config is correctly parsed
 	// yamled, _ := yaml.Marshal(data)
 	// fmt.Print(string(yamled))
+
+	data.Jump.DefaultLastJump = time.Now()
 
 	return data, nil
 }

@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/erwanlbp/trading-bot/pkg/binance"
+	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/model"
@@ -20,15 +21,15 @@ type JumpFinder struct {
 	Binance    *binance.Client
 	Repository *repository.Repository
 	EventBus   *eventbus.Bus
-	Bridge     *string
+	ConfigFile *configfile.ConfigFile
 }
 
-func NewJumpFinder(l *log.Logger, r *repository.Repository, eb *eventbus.Bus, b *string, bc *binance.Client) *JumpFinder {
+func NewJumpFinder(l *log.Logger, r *repository.Repository, eb *eventbus.Bus, cf *configfile.ConfigFile, bc *binance.Client) *JumpFinder {
 	return &JumpFinder{
 		Logger:     l,
 		Repository: r,
 		EventBus:   eb,
-		Bridge:     b,
+		ConfigFile: cf,
 		Binance:    bc,
 	}
 }
@@ -68,8 +69,9 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 
 	// Find best pair (if any) to jump
 
-	// TODO Get it from user conf and dynamically !
-	threshold := 0.015
+	wantedDiff := 1 + util.Float64(p.ConfigFile.Jump.GetNeededGain(currentCoin.Timestamp))
+
+	logger.Debug(fmt.Sprintf("Need a ratios change of %f", wantedDiff))
 
 	type BJ struct {
 		Pair model.PairWithTickerRatio
@@ -95,24 +97,22 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 			lastPairRatio = defaultRatio
 		}
 
-		sellingFeePct, err := p.Binance.GetFee(ctx, util.Symbol(pairRatio.Pair.FromCoin, *p.Bridge))
+		sellingFeePct, err := p.Binance.GetFee(ctx, util.Symbol(pairRatio.Pair.FromCoin, p.ConfigFile.Bridge))
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to get selling fee for symbol %s, ignoring", util.LogSymbol(pairRatio.Pair.FromCoin, *p.Bridge)), zap.Error(err))
+			logger.Error(fmt.Sprintf("failed to get selling fee for symbol %s, ignoring", util.LogSymbol(pairRatio.Pair.FromCoin, p.ConfigFile.Bridge)), zap.Error(err))
 			continue
 		}
-		buyingFeePct, err := p.Binance.GetFee(ctx, util.Symbol(pairRatio.Pair.ToCoin, *p.Bridge))
+		buyingFeePct, err := p.Binance.GetFee(ctx, util.Symbol(pairRatio.Pair.ToCoin, p.ConfigFile.Bridge))
 		if err != nil {
-			logger.Error(fmt.Sprintf("failed to get buying fee for symbol %s, ignoring", util.LogSymbol(pairRatio.Pair.ToCoin, *p.Bridge)), zap.Error(err))
+			logger.Error(fmt.Sprintf("failed to get buying fee for symbol %s, ignoring", util.LogSymbol(pairRatio.Pair.ToCoin, p.ConfigFile.Bridge)), zap.Error(err))
 			continue
 		}
 		feeMultiplier := 1 - (sellingFeePct + buyingFeePct - (sellingFeePct * buyingFeePct))
 
 		diff := feeMultiplier * pairRatio.Ratio / lastPairRatio
 
-		wantedDiff := 1 + threshold
-
 		if diff < wantedDiff {
-			logger.Debug(fmt.Sprintf("❌ Pair %s is not good", pairRatio.Pair.LogSymbol()), zap.Float64("current_ratio", pairRatio.Ratio), zap.Float64("last_jump_out_ratio", lastPairRatio), zap.Float64("diff", diff), zap.Float64("fee", feeMultiplier), zap.Float64("threshold", wantedDiff))
+			// logger.Debug(fmt.Sprintf("❌ Pair %s is not good", pairRatio.Pair.LogSymbol()), zap.Float64("current_ratio", pairRatio.Ratio), zap.Float64("last_jump_out_ratio", lastPairRatio), zap.Float64("diff", diff), zap.Float64("fee", feeMultiplier), zap.Float64("threshold", wantedDiff))
 			continue
 		}
 
@@ -132,10 +132,12 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 	}
 
 	logger.Info(fmt.Sprintf("Will jump to %s !", bestJump.Pair.Pair.ToCoin))
+
+	p.JumpTo(ctx, currentCoin.ToCoin, bestJump.Pair.Pair.ToCoin)
 }
 
 func (p *JumpFinder) CalculateRatios() ([]model.PairWithTickerRatio, error) {
-	lastPrices, err := p.Repository.GetCoinsLastPrice(*p.Bridge)
+	lastPrices, err := p.Repository.GetCoinsLastPrice(p.ConfigFile.Bridge)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get coins last price: %w", err)
 	}
@@ -183,4 +185,17 @@ func (p *JumpFinder) CalculateRatios() ([]model.PairWithTickerRatio, error) {
 	p.Logger.Debug(fmt.Sprintf("Updated %d pairs ratios", len(pairsHistory)))
 
 	return res, nil
+}
+
+func (p *JumpFinder) JumpTo(ctx context.Context, fromCoin, toCoin string) {
+	logger := p.Logger.With(zap.String("process", "jumper"))
+
+	balances, err := p.Binance.GetBalance(ctx, fromCoin, toCoin, p.ConfigFile.Bridge)
+	if err != nil {
+		logger.Error("Failed to get coins balance", zap.Error(err), zap.Strings("coins", []string{fromCoin, toCoin, p.ConfigFile.Bridge}))
+		return
+	}
+
+	logger.Info("Balances before jump", zap.Any("balances", balances))
+
 }

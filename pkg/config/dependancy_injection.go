@@ -4,6 +4,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/erwanlbp/trading-bot/pkg/binance"
+	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 	"github.com/erwanlbp/trading-bot/pkg/db"
 	"github.com/erwanlbp/trading-bot/pkg/db/sqlite"
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
@@ -16,7 +17,7 @@ import (
 type Config struct {
 	Logger *log.Logger
 
-	ConfigFile ConfigFile
+	ConfigFile *configfile.ConfigFile
 
 	DB         *db.DB
 	Repository *repository.Repository
@@ -38,11 +39,11 @@ func Init() *Config {
 
 	conf.Logger = log.NewZapLogger()
 
-	cf, err := ParseConfigFile()
+	cf, err := configfile.ParseConfigFile()
 	if err != nil {
 		conf.Logger.Fatal("Failed to parse config file", zap.Error(err))
 	}
-	conf.ConfigFile = cf
+	conf.ConfigFile = &cf
 
 	conf.BinanceClient = binance.NewClient(conf.Logger, cf.Binance.APIKey, cf.Binance.APIKeySecret)
 
@@ -53,14 +54,14 @@ func Init() *Config {
 	}
 	conf.DB = db.NewDB(sqliteDb)
 
-	conf.Repository = repository.NewRepository(conf.DB, conf.ConfigFile.StartCoin)
+	conf.Repository = repository.NewRepository(conf.DB, conf.ConfigFile)
 
 	conf.EventBus = eventbus.NewEventBus()
 
 	conf.Service = service.NewService(conf.Logger, conf.Repository)
 
 	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, AltCoins)
-	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, &conf.ConfigFile.Bridge, conf.BinanceClient)
+	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, conf.ConfigFile, conf.BinanceClient)
 	conf.ProcessFeeGetter = process.NewFeeGetter(conf.Logger, conf.BinanceClient)
 
 	return &conf
