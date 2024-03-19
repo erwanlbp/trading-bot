@@ -29,6 +29,7 @@ type Config struct {
 
 	ProcessPriceGetter *process.PriceGetter
 	ProcessJumpFinder  *process.JumpFinder
+	ProcessFeeGetter   *process.FeeGetter
 }
 
 func Init() *Config {
@@ -59,7 +60,8 @@ func Init() *Config {
 	conf.Service = service.NewService(conf.Logger, conf.Repository)
 
 	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, AltCoins)
-	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus)
+	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, &conf.ConfigFile.Bridge, conf.BinanceClient)
+	conf.ProcessFeeGetter = process.NewFeeGetter(conf.Logger, conf.BinanceClient)
 
 	return &conf
 }

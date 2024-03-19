@@ -7,6 +7,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/erwanlbp/trading-bot/pkg/binance"
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/model"
@@ -16,15 +17,19 @@ import (
 
 type JumpFinder struct {
 	Logger     *log.Logger
+	Binance    *binance.Client
 	Repository *repository.Repository
 	EventBus   *eventbus.Bus
+	Bridge     *string
 }
 
-func NewJumpFinder(l *log.Logger, r *repository.Repository, eb *eventbus.Bus) *JumpFinder {
+func NewJumpFinder(l *log.Logger, r *repository.Repository, eb *eventbus.Bus, b *string, bc *binance.Client) *JumpFinder {
 	return &JumpFinder{
 		Logger:     l,
 		Repository: r,
 		EventBus:   eb,
+		Bridge:     b,
+		Binance:    bc,
 	}
 }
 
@@ -32,10 +37,10 @@ func (p *JumpFinder) Start(ctx context.Context) {
 
 	sub := p.EventBus.Subscribe(eventbus.EventCoinsPricesFetched)
 
-	go sub.Handler(p.FindJump)
+	go sub.Handler(ctx, p.FindJump)
 }
 
-func (p *JumpFinder) FindJump(_ eventbus.Event) {
+func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 	logger := p.Logger.With(zap.String("process", "jump_finder"))
 
 	// Get pairsRatio from current prices
@@ -48,7 +53,6 @@ func (p *JumpFinder) FindJump(_ eventbus.Event) {
 		logger.Warn("No ratios found (weird), can't find better coin")
 		return
 	}
-	logger.Debug(fmt.Sprintf("Calculated %d pair ratios", len(pairsRatio)))
 
 	currentCoin, err := p.Repository.GetLastJump()
 	if err != nil {
@@ -61,6 +65,8 @@ func (p *JumpFinder) FindJump(_ eventbus.Event) {
 			pairsFromCurrentCoin = append(pairsFromCurrentCoin, p)
 		}
 	}
+
+	// Find best pair (if any) to jump
 
 	// TODO Get it from user conf and dynamically !
 	threshold := 0.015
@@ -89,18 +95,28 @@ func (p *JumpFinder) FindJump(_ eventbus.Event) {
 			lastPairRatio = defaultRatio
 		}
 
-		// TODO Add fees
+		sellingFeePct, err := p.Binance.GetFee(ctx, util.Symbol(pairRatio.Pair.FromCoin, *p.Bridge))
+		if err != nil {
+			logger.Error(fmt.Sprintf("failed to get selling fee for symbol %s, ignoring", util.LogSymbol(pairRatio.Pair.FromCoin, *p.Bridge)), zap.Error(err))
+			continue
+		}
+		buyingFeePct, err := p.Binance.GetFee(ctx, util.Symbol(pairRatio.Pair.ToCoin, *p.Bridge))
+		if err != nil {
+			logger.Error(fmt.Sprintf("failed to get buying fee for symbol %s, ignoring", util.LogSymbol(pairRatio.Pair.ToCoin, *p.Bridge)), zap.Error(err))
+			continue
+		}
+		feeMultiplier := 1 - (sellingFeePct + buyingFeePct - (sellingFeePct * buyingFeePct))
 
-		diff := pairRatio.Ratio / lastPairRatio
+		diff := feeMultiplier * pairRatio.Ratio / lastPairRatio
 
 		wantedDiff := 1 + threshold
 
 		if diff < wantedDiff {
-			logger.Debug(fmt.Sprintf("❌ Pair %s is not good", pairRatio.Pair.LogSymbol()), zap.Float64("current_ratio", pairRatio.Ratio), zap.Float64("last_jump_out_ratio", lastPairRatio), zap.Float64("diff", diff), zap.Float64("threshold", wantedDiff))
+			logger.Debug(fmt.Sprintf("❌ Pair %s is not good", pairRatio.Pair.LogSymbol()), zap.Float64("current_ratio", pairRatio.Ratio), zap.Float64("last_jump_out_ratio", lastPairRatio), zap.Float64("diff", diff), zap.Float64("fee", feeMultiplier), zap.Float64("threshold", wantedDiff))
 			continue
 		}
 
-		logger.Debug(fmt.Sprintf("✅ Pair %s is good", pairRatio.Pair.LogSymbol()), zap.Float64("current_ratio", pairRatio.Ratio), zap.Float64("last_jump_out_ratio", lastPairRatio), zap.Float64("diff", diff), zap.Float64("threshold", wantedDiff))
+		logger.Debug(fmt.Sprintf("✅ Pair %s is good", pairRatio.Pair.LogSymbol()), zap.Float64("current_ratio", pairRatio.Ratio), zap.Float64("last_jump_out_ratio", lastPairRatio), zap.Float64("diff", diff), zap.Float64("fee", feeMultiplier), zap.Float64("threshold", wantedDiff))
 
 		if bestJump == nil || bestJump.Diff < diff {
 			bestJump = &BJ{
@@ -119,7 +135,7 @@ func (p *JumpFinder) FindJump(_ eventbus.Event) {
 }
 
 func (p *JumpFinder) CalculateRatios() ([]model.PairWithTickerRatio, error) {
-	lastPrices, err := p.Repository.GetCoinsLastPrice("USDT")
+	lastPrices, err := p.Repository.GetCoinsLastPrice(*p.Bridge)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get coins last price: %w", err)
 	}
@@ -163,6 +179,8 @@ func (p *JumpFinder) CalculateRatios() ([]model.PairWithTickerRatio, error) {
 	if err := repository.SimpleUpsert(p.Repository.DB.DB, pairsHistory...); err != nil {
 		return nil, fmt.Errorf("failed saving pairs history: %w", err)
 	}
+
+	p.Logger.Debug(fmt.Sprintf("Updated %d pairs ratios", len(pairsHistory)))
 
 	return res, nil
 }

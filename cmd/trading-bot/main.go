@@ -48,6 +48,9 @@ func main() {
 		logger.Fatal("failed initializing coin pairs", zap.Error(err))
 	}
 
+	logger.Info("Starting fees getter process")
+	conf.ProcessFeeGetter.Start(ctx)
+
 	logger.Info("Starting jump finder process")
 	conf.ProcessJumpFinder.Start(ctx)
 

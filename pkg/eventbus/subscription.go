@@ -1,10 +1,14 @@
 package eventbus
 
+import "context"
+
 type Subscription struct {
 	EventsCh         chan Event
 	EventsSubscribed map[Event]bool
 	closed           bool
 }
+
+type EventHandler func(context.Context, Event)
 
 func newSubscription(events []Event) *Subscription {
 	eventsMap := make(map[Event]bool)
@@ -23,8 +27,13 @@ func (s *Subscription) Close() {
 }
 
 // If events is not provided, will be all events for this subscription
-func (s *Subscription) Handler(handler func(Event)) {
-	for ev := range s.EventsCh {
-		handler(ev)
+func (s *Subscription) Handler(ctx context.Context, handler EventHandler) {
+	for {
+		select {
+		case ev := <-s.EventsCh:
+			handler(ctx, ev)
+		case <-ctx.Done():
+			break
+		}
 	}
 }
