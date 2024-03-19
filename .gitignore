@@ -27,3 +27,6 @@ data/*.db
 
 # Config files
 config/*.yaml
+
+# Binaries
+main

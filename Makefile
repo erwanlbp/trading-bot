@@ -1,5 +1,5 @@
 build:
-	go build
+	go build cmd/trading-bot/main.go
 
 # Start the bot
 run:
