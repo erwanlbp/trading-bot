@@ -43,7 +43,7 @@ func (p *PriceGetter) Start(ctx context.Context) {
 
 		// To avoid waiting too long before first fetch
 		if time.Now().Second() < 20 {
-			p.FetchCoinsPrices(context.Background())
+			p.FetchCoinsPrices(ctx)
 		}
 
 		// If ctx is canceled, we'll stop the job

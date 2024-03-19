@@ -2,6 +2,10 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -9,6 +13,22 @@ import (
 )
 
 func main() {
+	cancelChan := make(chan os.Signal, 1)
+	// catch SIGETRM or SIGINTERRUPT
+	signal.Notify(cancelChan, syscall.SIGTERM, syscall.SIGINT)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan bool)
+
+	go func() {
+		<-cancelChan
+		cancel()
+		// Wait 2s to give everyone time to finish
+		time.Sleep(2 * time.Second)
+		close(done)
+	}()
+
 	conf := config.Init()
 
 	logger := conf.Logger
@@ -28,14 +48,13 @@ func main() {
 		logger.Fatal("failed initializing coin pairs", zap.Error(err))
 	}
 
-	// TODO Have a clean exit plan, catch SIGTERM and cancel ctx
-	ctx := context.Background()
-
 	logger.Info("Starting jump finder process")
 	conf.ProcessJumpFinder.Start(ctx)
 
 	logger.Info("Starting coins price getter process")
 	conf.ProcessPriceGetter.Start(ctx)
 
-	<-make(chan int)
+	// Wait until done is closed
+	<-done
+
 }
