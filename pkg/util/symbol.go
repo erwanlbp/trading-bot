@@ -4,6 +4,10 @@ import (
 	"fmt"
 )
 
+func LogSymbol(coin, altCoin string) string {
+	return fmt.Sprintf("%s/%s", coin, altCoin)
+}
+
 func Symbol(coin, altCoin string) string {
 	return fmt.Sprintf("%s%s", coin, altCoin)
 }

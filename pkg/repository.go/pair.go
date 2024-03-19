@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 
 	"github.com/erwanlbp/trading-bot/pkg/model"
@@ -22,6 +24,12 @@ func (r *Repository) GetPairs(filters ...QueryFilter) (map[string]model.Pair, er
 	}
 
 	return util.AsMap(pairs, func(p model.Pair) string { return util.Symbol(p.FromCoin, p.ToCoin) }), nil
+}
+
+func (r *Repository) GetAvgLastPairRatioBetween(pairID uint, start, end time.Time) (float64, error) {
+	var res float64
+	err := r.DB.Select("COALESCE(MIN(ratio), 0)").Table(model.PairHistoryTableName).Where("pair_id = ?", pairID).Where("timestamp BETWEEN ? AND ?", start, end).Find(&res).Error
+	return res, err
 }
 
 func ExistingPair() QueryFilter {

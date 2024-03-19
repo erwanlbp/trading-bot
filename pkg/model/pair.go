@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/erwanlbp/trading-bot/pkg/util"
+)
 
 const PairTableName = "pairs"
 const PairHistoryTableName = "pairs_history"
@@ -11,12 +15,21 @@ type Pair struct {
 	ToCoin   string
 	Exists   bool
 
+	LastJumpIn       time.Time
+	LastJumpInRatio  float64
+	LastJumpOut      time.Time
+	LastJumpOutRatio float64
+
 	FromCoinDetail Coin `gorm:"foreignKey:FromCoin"`
 	ToCoinDetail   Coin `gorm:"foreignKey:ToCoin"`
 }
 
 func (Pair) TableName() string {
 	return PairTableName
+}
+
+func (p Pair) LogSymbol() string {
+	return util.LogSymbol(p.FromCoin, p.ToCoin)
 }
 
 type PairHistory struct {
@@ -29,4 +42,10 @@ type PairHistory struct {
 
 func (PairHistory) TableName() string {
 	return PairHistoryTableName
+}
+
+type PairWithTickerRatio struct {
+	Pair      Pair
+	Ratio     float64
+	Timestamp time.Time
 }

@@ -14,3 +14,12 @@ coins:
   - AVAX
   - SOL
   - STRK
+
+# Coin to start with, only used at first startup 
+start_coin: AVAX
+
+jump:
+  when_gain: 3 # %
+  # Or
+  decrease_by: 0.5 # %
+  after: 4h # Go time.Duration

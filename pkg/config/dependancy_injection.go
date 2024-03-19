@@ -28,8 +28,7 @@ type Config struct {
 	BinanceClient *binance.Client
 
 	ProcessPriceGetter *process.PriceGetter
-	ProcessPriceLogger *process.PriceLogger
-	ProcessPairRatioer *process.PairRatioer
+	ProcessJumpFinder  *process.JumpFinder
 }
 
 func Init() *Config {
@@ -44,7 +43,7 @@ func Init() *Config {
 	}
 	conf.ConfigFile = cf
 
-	conf.BinanceClient = binance.NewClient(cf.Binance.APIKey, cf.Binance.APIKeySecret)
+	conf.BinanceClient = binance.NewClient(conf.Logger, cf.Binance.APIKey, cf.Binance.APIKeySecret)
 
 	dbFileName := "data/trading_bot" // TODO Get it more dynamically ?
 	sqliteDb, err := sqlite.NewDB(conf.Logger, dbFileName)
@@ -53,15 +52,14 @@ func Init() *Config {
 	}
 	conf.DB = db.NewDB(sqliteDb)
 
-	conf.Repository = repository.NewRepository(conf.DB)
+	conf.Repository = repository.NewRepository(conf.DB, conf.ConfigFile.StartCoin)
 
 	conf.EventBus = eventbus.NewEventBus()
 
 	conf.Service = service.NewService(conf.Logger, conf.Repository)
 
 	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, AltCoins)
-	conf.ProcessPriceLogger = process.NewPriceLogger(conf.Logger, conf.Repository, conf.EventBus)
-	conf.ProcessPairRatioer = process.NewPairRatioer(conf.Logger, conf.Repository, conf.EventBus)
+	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus)
 
 	return &conf
 }

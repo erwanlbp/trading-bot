@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/adshao/go-binance/v2"
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
@@ -16,17 +17,31 @@ type CoinPrice struct {
 	Timestamp time.Time
 }
 
+// TODO On devrait peut etre la stocker en DB ?
+var SymbolsBlackList map[string]bool = make(map[string]bool)
+
 func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) ([]CoinPrice, error) {
 
 	var symbols []string
 
 	for _, coin := range coins {
 		for _, altCoin := range altCoins {
-			symbols = append(symbols, util.Symbol(coin, altCoin))
+			if symbol := util.Symbol(coin, altCoin); !SymbolsBlackList[symbol] {
+				symbols = append(symbols, symbol)
+			}
 		}
 	}
 
+	if len(symbols) == 0 {
+		return nil, nil
+	}
+
 	prices, err := c.client.NewListPricesService().Symbols(symbols).Do(ctx)
+	if err != nil {
+		if ErrorIs(err, BinanceErrorInvalidSymbol) {
+			prices, err = c.dichotomicPriceFetching(ctx, symbols)
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -51,4 +66,26 @@ func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) ([
 	}
 
 	return res, nil
+}
+
+func (c *Client) dichotomicPriceFetching(ctx context.Context, symbols []string) ([]*binance.SymbolPrice, error) {
+
+	// TODO Flemme de faire l'algo dichotomic là maintenant lol, pour l'instant je fais du 1 par 1 mais ca va spammer 😬
+
+	var prices []*binance.SymbolPrice
+
+	for _, symbol := range symbols {
+		price, err := c.client.NewListPricesService().Symbol(symbol).Do(ctx)
+		if err != nil {
+			if ErrorIs(err, BinanceErrorInvalidSymbol) {
+				c.Logger.Info(fmt.Sprintf("Found unexisting symbol '%s' on Binance, won't fetch it anymore", symbol))
+				SymbolsBlackList[symbol] = true
+				continue
+			}
+			return nil, fmt.Errorf("failed to fetch price for symbol %s: %w", symbol, err)
+		}
+		prices = append(prices, price...)
+	}
+
+	return prices, nil
 }

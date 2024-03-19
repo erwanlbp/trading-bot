@@ -22,5 +22,6 @@ func (d *DB) MigrateSchema() error {
 		model.CoinPrice{},
 		model.Pair{},
 		model.PairHistory{},
+		model.Jump{},
 	)
 }
