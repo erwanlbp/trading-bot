@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/erwanlbp/trading-bot/pkg/util"
 	"github.com/shopspring/decimal"
 	yaml "gopkg.in/yaml.v3"
 )
@@ -57,6 +58,14 @@ func (j Jump) GetNeededGain(lastJump time.Time) decimal.Decimal {
 	}
 
 	return gain.Div(decimal.NewFromInt(100))
+}
+
+func (cf ConfigFile) GenerateAllSymbolsWithBridge() []string {
+	var res []string
+	for _, coin := range cf.Coins {
+		res = append(res, util.Symbol(coin, cf.Bridge))
+	}
+	return res
 }
 
 func ParseConfigFile() (ConfigFile, error) {

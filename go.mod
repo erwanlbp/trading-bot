@@ -10,6 +10,7 @@ require (
 	github.com/shopspring/decimal v1.3.1
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/zap v1.27.0
+	golang.org/x/sync v0.6.0
 	gopkg.in/yaml.v3 v3.0.1
 	gorm.io/driver/sqlite v1.5.5
 	gorm.io/gorm v1.25.7

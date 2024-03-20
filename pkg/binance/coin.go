@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/adshao/go-binance/v2"
+	"github.com/shopspring/decimal"
+
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
@@ -88,4 +90,28 @@ func (c *Client) dichotomicPriceFetching(ctx context.Context, symbols []string) 
 	}
 
 	return prices, nil
+}
+
+func (c *Client) GetSymbolMinTradeValue(ctx context.Context, symbol string) (decimal.Decimal, error) {
+	allInfos := c.coinInfosRefresher.Data(ctx)
+
+	info, ok := allInfos[symbol]
+	if !ok {
+		return decimal.Zero, fmt.Errorf("cannot find symbol infos")
+	}
+
+	return decimal.NewFromString(info.MinNotionalFilter().MinNotional)
+}
+
+func (c *Client) RefreshSymbolInfos(ctx context.Context) (map[string]binance.Symbol, error) {
+	infos, err := c.client.NewExchangeInfoService().Symbols(c.ConfigFile.GenerateAllSymbolsWithBridge()...).Do(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get coin infos: %w", err)
+	}
+
+	var res map[string]binance.Symbol = make(map[string]binance.Symbol)
+	for _, info := range infos.Symbols {
+		res[info.Symbol] = info
+	}
+	return res, nil
 }

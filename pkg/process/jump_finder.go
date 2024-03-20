@@ -50,6 +50,9 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 		logger.Error("Failed to calculate new ratios, can't find better coin", zap.Error(err))
 		return
 	}
+
+	// TODO If is "in jump" stop there
+
 	if len(pairsRatio) == 0 {
 		logger.Warn("No ratios found (weird), can't find better coin")
 		return
@@ -69,7 +72,7 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 
 	// Find best pair (if any) to jump
 
-	wantedDiff := 1 + util.Float64(p.ConfigFile.Jump.GetNeededGain(currentCoin.Timestamp))
+	wantedDiff := 1 + p.ConfigFile.Jump.GetNeededGain(currentCoin.Timestamp).InexactFloat64()
 
 	logger.Debug(fmt.Sprintf("Need a ratios change of %f", wantedDiff))
 
@@ -197,5 +200,33 @@ func (p *JumpFinder) JumpTo(ctx context.Context, fromCoin, toCoin string) {
 	}
 
 	logger.Info("Balances before jump", zap.Any("balances", balances))
+
+	fromSymbol := util.Symbol(fromCoin, p.ConfigFile.Bridge)
+
+	var fromPrice float64
+	if prices, err := p.Binance.GetCoinsPrice(ctx, []string{fromCoin}, []string{p.ConfigFile.Bridge}); err != nil {
+		logger.Error(fmt.Sprintf("Failed to get symbol '%s' price", fromSymbol), zap.Error(err))
+		return
+	} else {
+		fromPrice = prices[0].Price
+	}
+
+	// Check that we have enough coin to go to bridge
+	fromMin, err := p.Binance.GetSymbolMinTradeValue(ctx, util.Symbol(fromCoin, p.ConfigFile.Bridge))
+	if err != nil {
+		logger.Error(fmt.Sprintf("Failed to get coin '%s' min trade value", fromCoin), zap.Error(err))
+		return
+	}
+	if value := fromPrice * balances[fromCoin]; value < fromMin.InexactFloat64() {
+		logger.Error("Don't have enough of current coin to make the trade to bridge, won't jump", zap.Float64("balance", balances[fromCoin]), zap.Float64("price", fromPrice), zap.Float64("price*balance", value), zap.Float64("min", fromMin.InexactFloat64()))
+		return
+	}
+
+	// Sell, to go to bridge
+	// - Get balance AVAX & USDT
+	// - Get symbol info
+	//   - quotePrecision
+
+	// Buy the new coin
 
 }

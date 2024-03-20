@@ -5,6 +5,9 @@ build:
 run:
 	go run cmd/trading-bot/main.go
 
+run-test:
+	go run cmd/test/main.go
+
 # Detect linting errors
 lint:
 	${GOPATH}/bin/golangci-lint run

@@ -45,7 +45,7 @@ func Init() *Config {
 	}
 	conf.ConfigFile = &cf
 
-	conf.BinanceClient = binance.NewClient(conf.Logger, cf.Binance.APIKey, cf.Binance.APIKeySecret)
+	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, cf.Binance.APIKey, cf.Binance.APIKeySecret)
 
 	dbFileName := "data/trading_bot" // TODO Get it more dynamically ?
 	sqliteDb, err := sqlite.NewDB(conf.Logger, dbFileName)
