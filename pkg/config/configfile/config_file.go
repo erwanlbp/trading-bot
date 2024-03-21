@@ -25,6 +25,8 @@ type ConfigFile struct {
 	// TODO Do we need it ? we could find the ratio getting better and buy it
 	StartCoin *string `yaml:"start_coin"`
 
+	TradeTimeout time.Duration `yaml:"trade_timeout"`
+
 	Jump Jump `yaml:"jump"`
 }
 
@@ -71,6 +73,14 @@ func (cf ConfigFile) GenerateAllSymbolsWithBridge() []string {
 	return res
 }
 
+func (cf *ConfigFile) ApplyDefaults() {
+	if cf.TradeTimeout == 0 {
+		cf.TradeTimeout = 10 * time.Minute
+	}
+
+	// TODO other defaults
+}
+
 func ParseConfigFile() (ConfigFile, error) {
 	var res ConfigFile
 
@@ -93,6 +103,8 @@ func ParseConfigFile() (ConfigFile, error) {
 	// To debug if the config is correctly parsed
 	// yamled, _ := yaml.Marshal(data)
 	// fmt.Print(string(yamled))
+
+	res.ApplyDefaults()
 
 	data.Jump.DefaultLastJump = time.Now()
 

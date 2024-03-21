@@ -15,6 +15,8 @@ type Client struct {
 	Logger     *log.Logger
 	ConfigFile *configfile.ConfigFile
 
+	tradeInProgress bool
+
 	coinInfosRefresher *refresher.Refresher[map[string]binance.Symbol]
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/adshao/go-binance/v2"
@@ -16,7 +15,7 @@ import (
 type CoinPrice struct {
 	Coin      string
 	AltCoin   string
-	Price     float64
+	Price     decimal.Decimal
 	Timestamp time.Time
 }
 
@@ -56,7 +55,7 @@ func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) ([
 		if err != nil {
 			return nil, fmt.Errorf("couldn't unsymbol %s: %w", price.Symbol, err)
 		}
-		p, err := strconv.ParseFloat(price.Price, 64)
+		p, err := decimal.NewFromString(price.Price)
 		if err != nil {
 			return nil, fmt.Errorf("failed parsing price for %s(%s): %w", price.Symbol, price.Price, err)
 		}
@@ -81,11 +80,11 @@ func (c *Client) GetSymbolPrice(ctx context.Context, symbol string) (decimal.Dec
 		return decimal.Zero, errors.New("no price returned")
 	}
 
-	price := prices[0].Price
-	p, err := decimal.NewFromString(price)
+	p, err := decimal.NewFromString(prices[0].Price)
 	if err != nil {
-		return decimal.Zero, fmt.Errorf("failed parsing price '%s': %w", price, err)
+		return decimal.Zero, fmt.Errorf("failed parsing price for %s(%s): %w", symbol, prices[0].Price, err)
 	}
+
 	return p, nil
 }
 

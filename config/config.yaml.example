@@ -18,7 +18,8 @@ coins:
   - SOL
   - STRK
 
-# Coin to start with, only used at first startup 
+# Coin to start with, only used at first startup
+# If not provided, the bot will find a coin with a ratio that is currently improving
 start_coin: AVAX
 
 jump:

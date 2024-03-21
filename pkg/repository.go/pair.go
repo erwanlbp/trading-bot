@@ -7,6 +7,7 @@ import (
 
 	"github.com/erwanlbp/trading-bot/pkg/model"
 	"github.com/erwanlbp/trading-bot/pkg/util"
+	"github.com/shopspring/decimal"
 )
 
 func (r *Repository) GetPairs(filters ...QueryFilter) (map[string]model.Pair, error) {
@@ -36,12 +37,12 @@ func (r *Repository) GetLastPairRatiosBefore(t time.Time) ([]model.PairHistory, 
 			"JOIN coins tc ON p.to_coin = tc.coin "+
 			"WHERE ph.timestamp < ? "+
 			"AND fc.enabled = 1 AND tc.enabled = 1) "+
-			"select pair_id, timestamp, ratio from cte where rnk = 1", t).Debug().Find(&res).Error
+			"select pair_id, timestamp, ratio from cte where rnk = 1", t).Find(&res).Error
 	return res, err
 }
 
-func (r *Repository) GetAvgLastPairRatioBetween(pairID uint, start, end time.Time) (float64, error) {
-	var res float64
+func (r *Repository) GetAvgLastPairRatioBetween(pairID uint, start, end time.Time) (decimal.Decimal, error) {
+	var res decimal.Decimal
 	err := r.DB.Select("COALESCE(MIN(ratio), 0)").Table(model.PairHistoryTableName).Where("pair_id = ?", pairID).Where("timestamp BETWEEN ? AND ?", start, end).Find(&res).Error
 	return res, err
 }
@@ -49,5 +50,11 @@ func (r *Repository) GetAvgLastPairRatioBetween(pairID uint, start, end time.Tim
 func ExistingPair() QueryFilter {
 	return func(q *gorm.DB) *gorm.DB {
 		return q.Where("exists = ?", true)
+	}
+}
+
+func ToCoin(coin string) QueryFilter {
+	return func(q *gorm.DB) *gorm.DB {
+		return q.Where("to_coin = ?", coin)
 	}
 }
