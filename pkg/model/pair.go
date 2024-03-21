@@ -44,6 +44,7 @@ func (PairHistory) TableName() string {
 	return PairHistoryTableName
 }
 
+// TODO Why does this struct is not just PairHistory ?
 type PairWithTickerRatio struct {
 	Pair      Pair
 	Ratio     float64

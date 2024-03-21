@@ -2,6 +2,7 @@ package binance
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -70,6 +71,24 @@ func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) ([
 	return res, nil
 }
 
+func (c *Client) GetSymbolPrice(ctx context.Context, symbol string) (decimal.Decimal, error) {
+	prices, err := c.client.NewListPricesService().Symbol(symbol).Do(ctx)
+	if err != nil {
+		return decimal.Zero, err
+	}
+
+	if len(prices) == 0 {
+		return decimal.Zero, errors.New("no price returned")
+	}
+
+	price := prices[0].Price
+	p, err := decimal.NewFromString(price)
+	if err != nil {
+		return decimal.Zero, fmt.Errorf("failed parsing price '%s': %w", price, err)
+	}
+	return p, nil
+}
+
 func (c *Client) dichotomicPriceFetching(ctx context.Context, symbols []string) ([]*binance.SymbolPrice, error) {
 
 	// TODO Flemme de faire l'algo dichotomic là maintenant lol, pour l'instant je fais du 1 par 1 mais ca va spammer 😬
@@ -92,15 +111,15 @@ func (c *Client) dichotomicPriceFetching(ctx context.Context, symbols []string) 
 	return prices, nil
 }
 
-func (c *Client) GetSymbolMinTradeValue(ctx context.Context, symbol string) (decimal.Decimal, error) {
+func (c *Client) GetSymbolInfos(ctx context.Context, symbol string) (binance.Symbol, error) {
 	allInfos := c.coinInfosRefresher.Data(ctx)
 
 	info, ok := allInfos[symbol]
 	if !ok {
-		return decimal.Zero, fmt.Errorf("cannot find symbol infos")
+		return binance.Symbol{}, fmt.Errorf("cannot find symbol infos")
 	}
 
-	return decimal.NewFromString(info.MinNotionalFilter().MinNotional)
+	return info, nil
 }
 
 func (c *Client) RefreshSymbolInfos(ctx context.Context) (map[string]binance.Symbol, error) {

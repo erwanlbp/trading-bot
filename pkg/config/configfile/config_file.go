@@ -12,6 +12,8 @@ import (
 )
 
 type ConfigFile struct {
+	TestMode bool `yaml:"test_mode"`
+
 	Binance struct {
 		APIKey       string `yaml:"api_key"`
 		APIKeySecret string `yaml:"api_key_secret"`
@@ -20,6 +22,7 @@ type ConfigFile struct {
 	Bridge string   `yaml:"bridge"`
 	Coins  []string `yaml:"coins"`
 
+	// TODO Do we need it ? we could find the ratio getting better and buy it
 	StartCoin *string `yaml:"start_coin"`
 
 	Jump Jump `yaml:"jump"`

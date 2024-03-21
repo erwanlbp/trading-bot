@@ -51,16 +51,25 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 		return
 	}
 
-	// TODO If is "in jump" stop there
+	// TODO If is "in jump" OR "first init" then stop there
 
 	if len(pairsRatio) == 0 {
 		logger.Warn("No ratios found (weird), can't find better coin")
 		return
 	}
 
-	currentCoin, err := p.Repository.GetLastJump()
+	currentCoin, hasEverJumped, err := p.Repository.GetLastJump()
 	if err != nil {
 		logger.Error("Failed getting current coin", zap.Error(err))
+		return
+	}
+	if !hasEverJumped {
+		logger.Info("Never jumped before, will try to find a first coin")
+		if err := p.InitFirstCoinBuy(ctx, pairsRatio); err != nil {
+			logger.Error("Failed initializing first coin", zap.Error(err))
+			return
+		}
+		return
 	}
 
 	var pairsFromCurrentCoin []model.PairWithTickerRatio
@@ -191,36 +200,7 @@ func (p *JumpFinder) CalculateRatios() ([]model.PairWithTickerRatio, error) {
 }
 
 func (p *JumpFinder) JumpTo(ctx context.Context, fromCoin, toCoin string) {
-	logger := p.Logger.With(zap.String("process", "jumper"))
-
-	balances, err := p.Binance.GetBalance(ctx, fromCoin, toCoin, p.ConfigFile.Bridge)
-	if err != nil {
-		logger.Error("Failed to get coins balance", zap.Error(err), zap.Strings("coins", []string{fromCoin, toCoin, p.ConfigFile.Bridge}))
-		return
-	}
-
-	logger.Info("Balances before jump", zap.Any("balances", balances))
-
-	fromSymbol := util.Symbol(fromCoin, p.ConfigFile.Bridge)
-
-	var fromPrice float64
-	if prices, err := p.Binance.GetCoinsPrice(ctx, []string{fromCoin}, []string{p.ConfigFile.Bridge}); err != nil {
-		logger.Error(fmt.Sprintf("Failed to get symbol '%s' price", fromSymbol), zap.Error(err))
-		return
-	} else {
-		fromPrice = prices[0].Price
-	}
-
-	// Check that we have enough coin to go to bridge
-	fromMin, err := p.Binance.GetSymbolMinTradeValue(ctx, util.Symbol(fromCoin, p.ConfigFile.Bridge))
-	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to get coin '%s' min trade value", fromCoin), zap.Error(err))
-		return
-	}
-	if value := fromPrice * balances[fromCoin]; value < fromMin.InexactFloat64() {
-		logger.Error("Don't have enough of current coin to make the trade to bridge, won't jump", zap.Float64("balance", balances[fromCoin]), zap.Float64("price", fromPrice), zap.Float64("price*balance", value), zap.Float64("min", fromMin.InexactFloat64()))
-		return
-	}
+	_, _ = p.Binance.Sell(ctx, fromCoin, p.ConfigFile.Bridge)
 
 	// Sell, to go to bridge
 	// - Get balance AVAX & USDT
@@ -229,4 +209,59 @@ func (p *JumpFinder) JumpTo(ctx context.Context, fromCoin, toCoin string) {
 
 	// Buy the new coin
 
+}
+
+// TODO The algo to find a "best" coin could be better lol it's kinda random right now I guess
+func (p *JumpFinder) InitFirstCoinBuy(ctx context.Context, pairsRatio []model.PairWithTickerRatio) error {
+	logger := p.Logger
+
+	// Get last ratios before current tick
+	lastRatios, err := p.Repository.GetLastPairRatiosBefore(pairsRatio[0].Timestamp)
+	if err != nil {
+		logger.Error("Failed to find previous ratios for first jump", zap.Error(err))
+		return nil
+	}
+	if len(lastRatios) == 0 {
+		logger.Warn("Couldn't find previous ratios for first jump, will wait next tick to re-check")
+		return nil
+	}
+	// Compare last ratios with current ones to find a coin that is going down compared to others
+	var bestPair model.PairWithTickerRatio = pairsRatio[0]
+	var bestPairLastRatio model.PairHistory
+	var bestPairDiff float64
+	for _, currentRatio := range pairsRatio {
+		for _, lastRatio := range lastRatios {
+			if currentRatio.Pair.ID != lastRatio.PairID {
+				continue
+			}
+
+			// Ignore the pair if we calculated the ratio too long ago
+			if lastRatio.Timestamp.Before(currentRatio.Timestamp.Add(-5 * time.Minute)) {
+				continue
+			}
+			diff := currentRatio.Ratio / lastRatio.Ratio
+
+			// We want a ratio that is improving
+			if diff < 1 {
+				continue
+			}
+
+			if diff > bestPairDiff {
+				bestPair = currentRatio
+				bestPairDiff = diff
+				bestPairLastRatio = lastRatio
+			}
+		}
+	}
+
+	logger.Info(fmt.Sprintf("Best pair for init is %s, thus will buy %s", bestPair.Pair.LogSymbol(), bestPair.Pair.ToCoin), zap.Float64("diff", bestPairDiff), zap.Duration("last_pair_refresh", bestPair.Timestamp.Sub(bestPairLastRatio.Timestamp)))
+
+	res, err := p.Binance.Buy(ctx, bestPair.Pair.ToCoin, p.ConfigFile.Bridge)
+	if err != nil {
+		logger.Error(fmt.Sprintf("Failed to buy %s", util.LogSymbol(bestPair.Pair.ToCoin, p.ConfigFile.Bridge)), zap.Error(err))
+		return err
+	}
+	_ = res
+
+	return nil
 }

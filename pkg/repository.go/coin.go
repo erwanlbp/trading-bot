@@ -9,25 +9,27 @@ import (
 )
 
 // TODO Bof
-func (r *Repository) GetLastJump() (model.Jump, error) {
+func (r *Repository) GetLastJump() (model.Jump, bool, error) {
 	var res model.Jump
 	err := r.DB.Order("timestamp desc").Limit(1).Find(&res).Error
 	if err != nil {
-		return res, err
+		return res, false, err
 	}
 	if res.ToCoin != "" {
-		return res, nil
+		return res, true, nil
 	}
+
+	return res, false, nil
 
 	// Default case, get start coin from config
 	if r.ConfigFile.StartCoin != nil {
 		return model.Jump{
 			ToCoin: *r.ConfigFile.StartCoin,
-		}, nil
+		}, false, nil
 	}
 
 	// TODO find a default current coin another way ?
-	return res, fmt.Errorf("no last jump found and no start coin in config")
+	return res, false, fmt.Errorf("no last jump found and no start coin in config")
 }
 
 func (r *Repository) GetAllCoins() ([]model.Coin, error) {

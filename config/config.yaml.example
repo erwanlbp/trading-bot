@@ -1,5 +1,8 @@
 # Rename this file to config.yaml and set your config
 
+# If true, will just test orders, not create them
+test_mode: true
+
 # Binance API Key (create a Sub Account ?)
 binance:
   api_key: <api_key>
