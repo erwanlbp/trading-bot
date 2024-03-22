@@ -1,13 +1,10 @@
+cmd=trading-bot
 build:
-	go build -o trading-bot cmd/trading-bot/main.go
+	go build -o ${cmd} cmd/${cmd}/main.go
 
 # Start the bot
 run:
-	go run cmd/trading-bot/main.go
-
-# When you want to test little pieces of code, without starting the bot
-run-test:
-	go run cmd/test/main.go
+	go run cmd/${cmd}/main.go
 
 # Detect linting errors
 lint:

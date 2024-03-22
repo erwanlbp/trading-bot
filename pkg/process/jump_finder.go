@@ -130,7 +130,7 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 		diff := feeMultiplier.Mul(pairRatio.Ratio).Div(lastPairRatio)
 
 		if diff.LessThan(wantedGain) {
-			logger.Info(fmt.Sprintf("❌ Pair %s is not good", pairRatio.Pair.LogSymbol()), zap.String("current_ratio", pairRatio.Ratio.String()), zap.String("last_jump_ratio", lastPairRatio.String()), zap.String("diff", diff.String()), zap.String("fee", feeMultiplier.String()), zap.String("threshold", wantedGain.String()))
+			logger.Debug(fmt.Sprintf("❌ Pair %s is not good", pairRatio.Pair.LogSymbol()), zap.String("current_ratio", pairRatio.Ratio.String()), zap.String("last_jump_ratio", lastPairRatio.String()), zap.String("diff", diff.String()), zap.String("fee", feeMultiplier.String()), zap.String("threshold", wantedGain.String()))
 			continue
 		}
 
