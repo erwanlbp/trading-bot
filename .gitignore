@@ -31,3 +31,4 @@ config/*.yaml
 # Binaries
 trading-bot
 balances
+!balances/
