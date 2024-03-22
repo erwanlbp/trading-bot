@@ -28,11 +28,11 @@ func (p *FeeGetter) Start(ctx context.Context) {
 
 		Scheduler, _ := scheduler.NewScheduler(1000)
 
-		id := Scheduler.Every().Second(0).Do(p.FetchBinanceFees, ctx)
+		id := Scheduler.Every().Second(0).Do(p.BinanceClient.RefreshFees, ctx)
 
 		// To avoid waiting too long before first fetch
 		if time.Now().Second() < 20 {
-			p.FetchBinanceFees(ctx)
+			p.BinanceClient.RefreshFees(ctx)
 		}
 
 		// If ctx is canceled, we'll stop the job
@@ -42,11 +42,4 @@ func (p *FeeGetter) Start(ctx context.Context) {
 			p.Logger.Error("failed canceling job", zap.Error(err))
 		}
 	}()
-}
-
-func (p *FeeGetter) FetchBinanceFees(ctx context.Context) {
-	logger := p.Logger.With(zap.String("process", "fetch_fees"))
-	logger.Debug("Fetching Binance fees")
-
-	p.BinanceClient.RefreshFees(ctx)
 }

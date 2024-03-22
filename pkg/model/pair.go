@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/erwanlbp/trading-bot/pkg/util"
+	"github.com/shopspring/decimal"
 )
 
 const PairTableName = "pairs"
@@ -15,10 +16,8 @@ type Pair struct {
 	ToCoin   string
 	Exists   bool
 
-	LastJumpIn       time.Time
-	LastJumpInRatio  float64
-	LastJumpOut      time.Time
-	LastJumpOutRatio float64
+	LastJump      time.Time
+	LastJumpRatio decimal.Decimal
 
 	FromCoinDetail Coin `gorm:"foreignKey:FromCoin"`
 	ToCoinDetail   Coin `gorm:"foreignKey:ToCoin"`
@@ -35,7 +34,7 @@ func (p Pair) LogSymbol() string {
 type PairHistory struct {
 	PairID    uint      `gorm:"primaryKey"`
 	Timestamp time.Time `gorm:"primaryKey"`
-	Ratio     float64
+	Ratio     decimal.Decimal
 
 	Pair Pair `gorm:"foreignKey:PairID;references:ID"`
 }
@@ -44,8 +43,9 @@ func (PairHistory) TableName() string {
 	return PairHistoryTableName
 }
 
+// TODO Why does this struct is not just PairHistory ?
 type PairWithTickerRatio struct {
 	Pair      Pair
-	Ratio     float64
+	Ratio     decimal.Decimal
 	Timestamp time.Time
 }

@@ -1,5 +1,8 @@
 # Rename this file to config.yaml and set your config
 
+# If true, will just test orders, not create them
+test_mode: true
+
 # Binance API Key (create a Sub Account ?)
 binance:
   api_key: <api_key>
@@ -15,8 +18,12 @@ coins:
   - SOL
   - STRK
 
-# Coin to start with, only used at first startup 
+# Coin to start with, only used at first startup
+# If not provided, the bot will find a coin with a ratio that is currently improving
 start_coin: AVAX
+
+# How much time to wait for order completion
+trade_timeout: 10m
 
 jump:
   when_gain: 0.5 # %

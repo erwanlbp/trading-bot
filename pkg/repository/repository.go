@@ -7,17 +7,20 @@ import (
 
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 	"github.com/erwanlbp/trading-bot/pkg/db"
+	"github.com/erwanlbp/trading-bot/pkg/log"
 )
 
 type Repository struct {
 	DB         *db.DB
 	ConfigFile *configfile.ConfigFile
+	Logger     *log.Logger
 }
 
-func NewRepository(db *db.DB, cf *configfile.ConfigFile) *Repository {
+func NewRepository(db *db.DB, cf *configfile.ConfigFile, l *log.Logger) *Repository {
 	return &Repository{
 		DB:         db,
 		ConfigFile: cf,
+		Logger:     l,
 	}
 }
 

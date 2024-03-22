@@ -6,11 +6,14 @@ import (
 	"os"
 	"time"
 
+	"github.com/erwanlbp/trading-bot/pkg/util"
 	"github.com/shopspring/decimal"
 	yaml "gopkg.in/yaml.v3"
 )
 
 type ConfigFile struct {
+	TestMode bool `yaml:"test_mode"`
+
 	Binance struct {
 		APIKey       string `yaml:"api_key"`
 		APIKeySecret string `yaml:"api_key_secret"`
@@ -19,7 +22,10 @@ type ConfigFile struct {
 	Bridge string   `yaml:"bridge"`
 	Coins  []string `yaml:"coins"`
 
+	// TODO Do we need it ? we could find the ratio getting better and buy it
 	StartCoin *string `yaml:"start_coin"`
+
+	TradeTimeout time.Duration `yaml:"trade_timeout"`
 
 	Jump Jump `yaml:"jump"`
 }
@@ -59,6 +65,22 @@ func (j Jump) GetNeededGain(lastJump time.Time) decimal.Decimal {
 	return gain.Div(decimal.NewFromInt(100))
 }
 
+func (cf ConfigFile) GenerateAllSymbolsWithBridge() []string {
+	var res []string
+	for _, coin := range cf.Coins {
+		res = append(res, util.Symbol(coin, cf.Bridge))
+	}
+	return res
+}
+
+func (cf *ConfigFile) ApplyDefaults() {
+	if cf.TradeTimeout == 0 {
+		cf.TradeTimeout = 10 * time.Minute
+	}
+
+	// TODO other defaults
+}
+
 func ParseConfigFile() (ConfigFile, error) {
 	var res ConfigFile
 
@@ -81,6 +103,8 @@ func ParseConfigFile() (ConfigFile, error) {
 	// To debug if the config is correctly parsed
 	// yamled, _ := yaml.Marshal(data)
 	// fmt.Print(string(yamled))
+
+	res.ApplyDefaults()
 
 	data.Jump.DefaultLastJump = time.Now()
 

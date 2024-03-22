@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/shopspring/decimal"
+)
 
 const CoinPriceTableName = "coin_price_history"
 
@@ -8,7 +12,7 @@ type CoinPrice struct {
 	Coin      string    `gorm:"primaryKey"`
 	AltCoin   string    `gorm:"primaryKey"`
 	Timestamp time.Time `gorm:"primaryKey"`
-	Price     float64
+	Price     decimal.Decimal
 
 	CoinRef Coin `gorm:"foreignKey:Coin;references:Coin"`
 }

@@ -74,6 +74,17 @@ func TestGetNeededGain(t *testing.T) {
 			lastJump: time.Now().Add(-1 * time.Hour),
 			expected: decimal.NewFromFloat(0.001),
 		},
+		{
+			name: "gain equals min",
+			input: configfile.Jump{
+				WhenGain:   decimal.NewFromInt(1),
+				DecreaseBy: decimal.NewFromFloat(0.2),
+				After:      2 * time.Minute,
+				Min:        decimal.NewFromFloat(1),
+			},
+			lastJump: time.Now().Add(-1 * time.Hour),
+			expected: decimal.NewFromFloat(0.01),
+		},
 	} {
 		c := c
 		t.Run(c.name, func(t *testing.T) {

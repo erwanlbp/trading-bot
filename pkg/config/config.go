@@ -7,7 +7,7 @@ import (
 
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/model"
-	"github.com/erwanlbp/trading-bot/pkg/repository.go"
+	"github.com/erwanlbp/trading-bot/pkg/repository"
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 

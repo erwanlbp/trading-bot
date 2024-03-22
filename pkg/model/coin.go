@@ -1,6 +1,10 @@
 package model
 
-import "github.com/erwanlbp/trading-bot/pkg/util"
+import (
+	"time"
+
+	"github.com/erwanlbp/trading-bot/pkg/util"
+)
 
 const CoinTableName = "coins"
 
@@ -11,6 +15,17 @@ type Coin struct {
 
 func (Coin) TableName() string {
 	return CoinTableName
+}
+
+const CurrentCoinTableName = "current_coin_history"
+
+type CurrentCoin struct {
+	Coin      string    `gorm:"primaryKey"`
+	Timestamp time.Time `gorm:"primaryKey"`
+}
+
+func (CurrentCoin) TableName() string {
+	return CurrentCoinTableName
 }
 
 func CoinIDMapper() util.Mapper[Coin, string] {
