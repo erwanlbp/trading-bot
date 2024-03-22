@@ -22,6 +22,9 @@ coins:
 # If not provided, the bot will find a coin with a ratio that is currently improving
 start_coin: AVAX
 
+# How much time to wait for order completion
+trade_timeout: 10m
+
 jump:
   when_gain: 0.5 # %
   # Or ⬇️

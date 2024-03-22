@@ -22,14 +22,14 @@ type CoinPrice struct {
 // TODO On devrait peut etre la stocker en DB ?
 var SymbolsBlackList map[string]bool = make(map[string]bool)
 
-func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) ([]CoinPrice, error) {
+func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) (map[string]CoinPrice, error) {
 
-	var symbols []string
+	var symbols map[string]bool = make(map[string]bool)
 
 	for _, coin := range coins {
 		for _, altCoin := range altCoins {
 			if symbol := util.Symbol(coin, altCoin); !SymbolsBlackList[symbol] {
-				symbols = append(symbols, symbol)
+				symbols[symbol] = true
 			}
 		}
 	}
@@ -38,10 +38,11 @@ func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) ([
 		return nil, nil
 	}
 
-	prices, err := c.client.NewListPricesService().Symbols(symbols).Do(ctx)
+	uniqueSymbols := util.Keys(symbols)
+	prices, err := c.client.NewListPricesService().Symbols(uniqueSymbols).Do(ctx)
 	if err != nil {
 		if ErrorIs(err, BinanceErrorInvalidSymbol) {
-			prices, err = c.dichotomicPriceFetching(ctx, symbols)
+			prices, err = c.dichotomicPriceFetching(ctx, uniqueSymbols)
 		}
 	}
 	if err != nil {
@@ -49,7 +50,7 @@ func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) ([
 	}
 	now := time.Now()
 
-	var res []CoinPrice
+	var res map[string]CoinPrice = make(map[string]CoinPrice)
 	for _, price := range prices {
 		coin, altCoin, err := util.Unsymbol(price.Symbol, coins, altCoins)
 		if err != nil {
@@ -59,12 +60,12 @@ func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) ([
 		if err != nil {
 			return nil, fmt.Errorf("failed parsing price for %s(%s): %w", price.Symbol, price.Price, err)
 		}
-		res = append(res, CoinPrice{
+		res[price.Symbol] = CoinPrice{
 			Coin:      coin,
 			AltCoin:   altCoin,
 			Price:     p,
 			Timestamp: now,
-		})
+		}
 	}
 
 	return res, nil

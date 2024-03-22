@@ -5,7 +5,8 @@ import (
 )
 
 const (
-	BinanceErrorInvalidSymbol int64 = -1121
+	BinanceErrorInvalidSymbol   int64 = -1121
+	BinanceErrorInvalidQuantity int64 = -1013
 )
 
 func ErrorIs(err error, code int64) bool {

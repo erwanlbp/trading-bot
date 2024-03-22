@@ -19,7 +19,7 @@ func (r *Repository) GetPairs(filters ...QueryFilter) (map[string]model.Pair, er
 		q = f(q)
 	}
 
-	err := r.DB.Find(&pairs).Error
+	err := q.Find(&pairs).Error
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (r *Repository) GetAvgLastPairRatioBetween(pairID uint, start, end time.Tim
 
 func ExistingPair() QueryFilter {
 	return func(q *gorm.DB) *gorm.DB {
-		return q.Where("exists = ?", true)
+		return q.Where("`exists` = 1")
 	}
 }
 

@@ -31,7 +31,7 @@ func (s *Subscription) Handler(ctx context.Context, handler EventHandler) {
 	for {
 		select {
 		case ev := <-s.EventsCh:
-			handler(ctx, ev)
+			go handler(ctx, ev)
 		case <-ctx.Done():
 			break
 		}

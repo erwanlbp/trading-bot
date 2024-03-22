@@ -10,7 +10,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/process"
-	"github.com/erwanlbp/trading-bot/pkg/repository.go"
+	"github.com/erwanlbp/trading-bot/pkg/repository"
 	"github.com/erwanlbp/trading-bot/pkg/service"
 )
 
@@ -54,11 +54,11 @@ func Init() *Config {
 	}
 	conf.DB = db.NewDB(sqliteDb)
 
-	conf.Repository = repository.NewRepository(conf.DB, conf.ConfigFile)
+	conf.Repository = repository.NewRepository(conf.DB, conf.ConfigFile, conf.Logger)
 
 	conf.EventBus = eventbus.NewEventBus()
 
-	conf.Service = service.NewService(conf.Logger, conf.Repository)
+	conf.Service = service.NewService(conf.Logger, conf.Repository, conf.BinanceClient, conf.ConfigFile)
 
 	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, AltCoins)
 	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, conf.ConfigFile, conf.BinanceClient)

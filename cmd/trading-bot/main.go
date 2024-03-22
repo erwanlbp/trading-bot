@@ -33,29 +33,32 @@ func main() {
 
 	logger := conf.Logger
 
-	logger.Info("Creating the DB if needed")
+	logger.Debug("Creating the DB if needed")
 	if err := conf.DB.MigrateSchema(); err != nil {
 		logger.Fatal("failed to migrate DB schema", zap.Error(err))
 	}
 
-	logger.Info("Loading supported coins")
+	logger.Debug("Loading supported coins")
 	if err := config.LoadCoins(conf.ConfigFile.Coins, logger, conf.Repository); err != nil {
 		logger.Fatal("failed to load supported coins", zap.Error(err))
 	}
 
-	logger.Info("Loading available pairs")
-	if err := conf.Service.InitializePairs(); err != nil {
+	logger.Debug("Loading available pairs")
+	if err := conf.Service.InitializePairs(ctx); err != nil {
 		logger.Fatal("failed initializing coin pairs", zap.Error(err))
 	}
 
-	logger.Info("Starting fees getter process")
+	logger.Debug("Starting fees getter process")
 	conf.ProcessFeeGetter.Start(ctx)
 
-	logger.Info("Starting jump finder process")
+	logger.Debug("Starting jump finder process")
 	conf.ProcessJumpFinder.Start(ctx)
 
-	logger.Info("Starting coins price getter process")
+	logger.Debug("Starting coins price getter process")
 	conf.ProcessPriceGetter.Start(ctx)
+
+	conf.BinanceClient.LogBalances(ctx)
+	conf.Repository.LogCurrentCoin()
 
 	// Wait until done is closed
 	<-done

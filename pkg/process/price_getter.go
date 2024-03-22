@@ -2,7 +2,6 @@ package process
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/prprprus/scheduler"
@@ -12,7 +11,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/model"
-	"github.com/erwanlbp/trading-bot/pkg/repository.go"
+	"github.com/erwanlbp/trading-bot/pkg/repository"
 )
 
 type PriceGetter struct {
@@ -57,7 +56,6 @@ func (p *PriceGetter) Start(ctx context.Context) {
 
 func (p *PriceGetter) FetchCoinsPrices(ctx context.Context) {
 	logger := p.Logger.With(zap.String("process", "fetch_price"))
-	logger.Debug("Start fetching coins price")
 
 	// TODO Should we get all coins, not just enabled, so that we could run the algorithm on more than just enabled coins to "propose" some new coins
 	coins, err := p.Repository.GetEnabledCoins()
@@ -85,8 +83,6 @@ func (p *PriceGetter) FetchCoinsPrices(ctx context.Context) {
 	if err := repository.SimpleUpsert(p.Repository.DB.DB, models...); err != nil {
 		logger.Error("Failed to save coin prices", zap.Error(err))
 	}
-
-	logger.Debug(fmt.Sprintf("Fetched %d coins price", len(models)))
 
 	p.EventBus.Notify(eventbus.EventCoinsPricesFetched)
 }

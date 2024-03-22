@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/erwanlbp/trading-bot/pkg/util"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
+
+	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
 var InvalidFeeValue error = errors.New("can't find symbol fee")
@@ -62,6 +63,8 @@ func (c *Client) RefreshFees(ctx context.Context) {
 		allFees.fees[fee.Symbol] = feeValue
 	}
 }
+
+var DefaultFee = decimal.NewFromFloat(0.998001)
 
 func (c *Client) GetJumpFeeMultiplier(ctx context.Context, fromCoin, toCoin, bridge string) (decimal.Decimal, error) {
 	sellingFeePct, err := c.GetFee(ctx, util.Symbol(fromCoin, bridge))

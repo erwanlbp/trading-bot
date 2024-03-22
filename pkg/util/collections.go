@@ -5,6 +5,14 @@ type (
 	Predicate[T any] Mapper[T, bool]
 )
 
+func Keys[K comparable, V any](m map[K]V) []K {
+	var res []K
+	for k := range m {
+		res = append(res, k)
+	}
+	return res
+}
+
 func AsMap[T any, K comparable](slice []T, keyGetter Mapper[T, K]) map[K]T {
 	res := make(map[K]T)
 	for _, e := range slice {

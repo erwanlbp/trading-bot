@@ -20,6 +20,7 @@ func (d *DB) MigrateSchema() error {
 	return d.DB.AutoMigrate(
 		model.Coin{},
 		model.CoinPrice{},
+		model.CurrentCoin{},
 		model.Pair{},
 		model.PairHistory{},
 		model.Jump{},
