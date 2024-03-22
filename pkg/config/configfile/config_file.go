@@ -85,6 +85,9 @@ func ParseConfigFile() (ConfigFile, error) {
 	var res ConfigFile
 
 	filepath := "config/config.yaml" // TODO Get it more dynamically ?
+	if rootPath, ok := os.LookupEnv("ROOT_PATH"); ok {
+		filepath = rootPath + filepath
+	}
 	file, err := os.Open(filepath)
 	if err != nil {
 		return res, fmt.Errorf("failed opening file: %w", err)

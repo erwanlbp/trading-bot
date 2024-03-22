@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+
 	"go.uber.org/zap"
 
 	"github.com/erwanlbp/trading-bot/pkg/binance"
@@ -50,6 +52,9 @@ func Init() *Config {
 	dbFileName := "data/trading_bot"
 	if conf.ConfigFile.TestMode {
 		dbFileName = "data/test_trading_bot"
+	}
+	if rootPath, ok := os.LookupEnv("ROOT_PATH"); ok {
+		dbFileName = rootPath + dbFileName
 	}
 	sqliteDb, err := sqlite.NewDB(conf.Logger, dbFileName)
 	if err != nil {
