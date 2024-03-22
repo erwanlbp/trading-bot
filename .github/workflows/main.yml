@@ -18,7 +18,7 @@ jobs:
 
       - name: Build
         run: |
-          make build
+          make build-all
   test:
     runs-on: ubuntu-latest
     steps:
