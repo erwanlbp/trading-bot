@@ -28,6 +28,9 @@ func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) (m
 
 	for _, coin := range coins {
 		for _, altCoin := range altCoins {
+			if coin == altCoin {
+				continue
+			}
 			if symbol := util.Symbol(coin, altCoin); !SymbolsBlackList[symbol] {
 				symbols[symbol] = true
 			}
