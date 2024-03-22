@@ -47,7 +47,10 @@ func Init() *Config {
 
 	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, cf.Binance.APIKey, cf.Binance.APIKeySecret)
 
-	dbFileName := "data/trading_bot" // TODO Get it more dynamically ?
+	dbFileName := "data/trading_bot"
+	if conf.ConfigFile.TestMode {
+		dbFileName = "data/test_trading_bot"
+	}
 	sqliteDb, err := sqlite.NewDB(conf.Logger, dbFileName)
 	if err != nil {
 		conf.Logger.Fatal("Failed to initialize DB", zap.Error(err))
