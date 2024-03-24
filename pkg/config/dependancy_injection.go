@@ -49,14 +49,15 @@ func Init() *Config {
 
 	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, cf.Binance.APIKey, cf.Binance.APIKeySecret)
 
-	dbFileName := "data/trading_bot"
+	dbFolderName := "data"
+	dbFileName := "trading_bot"
 	if conf.ConfigFile.TestMode {
-		dbFileName = "data/test_trading_bot"
+		dbFileName = dbFolderName + "test_trading_bot"
 	}
 	if rootPath, ok := os.LookupEnv("ROOT_PATH"); ok {
-		dbFileName = rootPath + dbFileName
+		dbFileName = rootPath + dbFolderName + dbFileName
 	}
-	sqliteDb, err := sqlite.NewDB(conf.Logger, dbFileName)
+	sqliteDb, err := sqlite.NewDB(conf.Logger, dbFolderName, dbFileName)
 	if err != nil {
 		conf.Logger.Fatal("Failed to initialize DB", zap.Error(err))
 	}
