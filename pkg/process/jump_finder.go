@@ -77,7 +77,7 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 			logger.Info("Current coin is the bridge, will try to find a new coin")
 		}
 		if err := p.FindGoodCoinFromBridge(ctx, pairsRatio); err != nil {
-			logger.Error("Failed finding coin from bridge", zap.Error(err))
+			logger.ErrorWithNotif("Failed finding coin from bridge", zap.Error(err))
 			return
 		}
 		return
@@ -143,7 +143,7 @@ computedDiff = append(computedDiff, model.Diff{
 			continue
 		}
 
-		logger.Info(fmt.Sprintf("✅ Pair %s is good", pairRatio.Pair.LogSymbol()), zap.String("current_ratio", pairRatio.Ratio.String()), zap.String("last_jump_ratio", lastPairRatio.String()), zap.String("diff", diff.String()), zap.String("fee", feeMultiplier.String()), zap.String("threshold", wantedGain.String()))
+		logger.InfoWithNotif(fmt.Sprintf("✅ Pair %s is good", pairRatio.Pair.LogSymbol()), zap.String("current_ratio", pairRatio.Ratio.String()), zap.String("last_jump_ratio", lastPairRatio.String()), zap.String("diff", diff.String()), zap.String("fee", feeMultiplier.String()), zap.String("threshold", wantedGain.String()))
 
 		if bestJump == nil || bestJump.Diff.LessThan(diff) {
 			bestJump = &BJ{
@@ -169,7 +169,7 @@ computedDiff = append(computedDiff, model.Diff{
 	}
 
 	if err := p.JumpTo(ctx, bestJump.Pair.Pair); err != nil {
-		logger.Error("Failed to jump", zap.Error(err))
+		logger.ErrorWithNotif("Failed to jump", zap.Error(err))
 	}
 }
 
@@ -229,7 +229,7 @@ func (p *JumpFinder) JumpTo(ctx context.Context, pair model.Pair) error {
 	}
 	defer release()
 
-	p.Logger.Info(fmt.Sprintf("Will jump from %s to %s", pair.FromCoin, pair.ToCoin))
+	p.Logger.InfoWithNotif(fmt.Sprintf("Will jump from %s to %s", pair.FromCoin, pair.ToCoin))
 
 	p.Binance.LogBalances(ctx)
 
@@ -241,7 +241,7 @@ func (p *JumpFinder) JumpTo(ctx context.Context, pair model.Pair) error {
 			p.Logger.Warn(fmt.Sprintf("Sell is partially executed, thus we stay on %s and it will be all sold next jump", pair.FromCoin))
 			return nil
 		}
-		p.Logger.Error(fmt.Sprintf("Failed to sell %s", util.LogSymbol(pair.FromCoin, p.ConfigFile.Bridge)), zap.Error(err))
+		p.Logger.ErrorWithNotif(fmt.Sprintf("Failed to sell %s", util.LogSymbol(pair.FromCoin, p.ConfigFile.Bridge)), zap.Error(err))
 		return err
 	}
 	// In case something goes wrong afterward, save bridge as current coin
@@ -253,9 +253,9 @@ func (p *JumpFinder) JumpTo(ctx context.Context, pair model.Pair) error {
 	buy, err := p.Binance.Buy(ctx, pair.ToCoin, p.ConfigFile.Bridge)
 	if err != nil {
 		if sell.IsPartiallyExecuted() {
-			p.Logger.Warn(fmt.Sprintf("Buy is partially executed, thus we go on %s", pair.ToCoin))
+			p.Logger.WarnWithNotif(fmt.Sprintf("Buy is partially executed, thus we go on %s", pair.ToCoin))
 		} else {
-			p.Logger.Error(fmt.Sprintf("Failed to buy %s", util.LogSymbol(pair.ToCoin, p.ConfigFile.Bridge)), zap.Error(err))
+			p.Logger.ErrorWithNotif(fmt.Sprintf("Failed to buy %s", util.LogSymbol(pair.ToCoin, p.ConfigFile.Bridge)), zap.Error(err))
 			return err
 		}
 	}
@@ -272,7 +272,7 @@ func (p *JumpFinder) JumpTo(ctx context.Context, pair model.Pair) error {
 		return fmt.Errorf("failed to save jump")
 	}
 	if err := p.UpdatePairsToCoinRatios(ctx, pair, &buy, &sell); err != nil {
-		p.Logger.Error(fmt.Sprintf("Failed to update pairs to coin %s ratios'", pair.ToCoin), zap.Error(err))
+		p.Logger.ErrorWithNotif(fmt.Sprintf("Failed to update pairs to coin %s ratios'", pair.ToCoin), zap.Error(err))
 		// TODO Not enough
 		return err
 	}
@@ -369,16 +369,16 @@ func (p *JumpFinder) FindGoodCoinFromBridge(ctx context.Context, pairsRatio []mo
 
 	bestCoin := bestPair.Pair.FromCoin
 
-	logger.Info(fmt.Sprintf("Best pair from bridge is %s, thus will buy %s", bestPair.Pair.LogSymbol(), bestCoin), zap.String("diff", bestPairDiff.String()), zap.Duration("last_pair_refresh", bestPair.Timestamp.Sub(bestPairLastRatio.Timestamp)))
+	logger.InfoWithNotif(fmt.Sprintf("Best pair from bridge is %s, thus will buy %s", bestPair.Pair.LogSymbol(), bestCoin), zap.String("diff", bestPairDiff.String()), zap.Duration("last_pair_refresh", bestPair.Timestamp.Sub(bestPairLastRatio.Timestamp)))
 
 	buy, err := p.Binance.Buy(ctx, bestCoin, p.ConfigFile.Bridge)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to buy %s", util.LogSymbol(bestCoin, p.ConfigFile.Bridge)), zap.Error(err))
+		logger.ErrorWithNotif(fmt.Sprintf("Failed to buy %s", util.LogSymbol(bestCoin, p.ConfigFile.Bridge)), zap.Error(err))
 		return err
 	}
 
 	if err := p.UpdatePairsToCoinRatios(ctx, model.Pair{ToCoin: bestCoin}, &buy, nil); err != nil {
-		logger.Error(fmt.Sprintf("Failed to update pairs to coin %s ratios'", bestCoin), zap.Error(err))
+		logger.ErrorWithNotif(fmt.Sprintf("Failed to update pairs to coin %s ratios'", bestCoin), zap.Error(err))
 		// TODO Not enough
 		return err
 	}

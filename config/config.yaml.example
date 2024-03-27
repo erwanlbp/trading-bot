@@ -32,3 +32,7 @@ jump:
   after: 2m # Go time.Duration
   # But gain cannot go below ⬇️
   min: 0.1 # %
+
+# Telegram bot token
+telegram:
+  token: <Telegram bot token>

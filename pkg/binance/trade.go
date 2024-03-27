@@ -81,9 +81,9 @@ func (c *Client) Trade(ctx context.Context, coin, stableCoin string, side binanc
 
 	// TODO That'd be cool to log the dust, but my formula seems not good ...
 	if side == binance.SideTypeBuy {
-		logger.Info(fmt.Sprintf("I have %s %s and %s %s. I'll buy %s %s, at price %s", balances[coin], coin, balances[stableCoin], stableCoin, quantity, coin, price), zap.String("step", step))
+		logger.InfoWithNotif(fmt.Sprintf("I have %s %s and %s %s. I'll buy %s %s, at price %s", balances[coin], coin, balances[stableCoin], stableCoin, quantity, coin, price), zap.String("step", step))
 	} else {
-		logger.Info(fmt.Sprintf("I have %s %s and %s %s. I'll sell %s %s, at price %s", balances[coin], coin, balances[stableCoin], stableCoin, quantity, coin, price), zap.String("step", step))
+		logger.InfoWithNotif(fmt.Sprintf("I have %s %s and %s %s. I'll sell %s %s, at price %s", balances[coin], coin, balances[stableCoin], stableCoin, quantity, coin, price), zap.String("step", step))
 	}
 
 	res, err := c.client.NewCreateOrderService().
@@ -100,7 +100,7 @@ func (c *Client) Trade(ctx context.Context, coin, stableCoin string, side binanc
 
 	order, err := c.WaitForOrderCompletion(ctx, symbol, res.OrderID)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to wait for order '%d' completion", res.OrderID), zap.Error(err))
+		logger.ErrorWithNotif(fmt.Sprintf("Failed to wait for order '%d' completion", res.OrderID), zap.Error(err))
 		return OrderResult{}, err
 	}
 
@@ -112,7 +112,7 @@ func (c *Client) WaitForOrderCompletion(ctx context.Context, symbol string, orde
 	timeoutCtx, cancel := context.WithTimeout(ctx, c.ConfigFile.TradeTimeout)
 	defer cancel()
 
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(c.ConfigFile.Order.Refresh)
 
 	var orderLastStatus *binance.Order
 	for {
@@ -139,23 +139,23 @@ func (c *Client) WaitForOrderCompletion(ctx context.Context, symbol string, orde
 			case binance.OrderStatusTypeNew:
 				c.Logger.Debug(fmt.Sprintf("Order '%d' is new", order.OrderID))
 			case binance.OrderStatusTypePartiallyFilled:
-				c.Logger.Debug(fmt.Sprintf("Order '%d' is partially filled (%s/%s)", order.OrderID, order.ExecutedQuantity, order.OrigQuantity))
+				c.Logger.DebugWithNotif(fmt.Sprintf("Order '%d' is partially filled (%s/%s)", order.OrderID, order.ExecutedQuantity, order.OrigQuantity))
 			case binance.OrderStatusTypeFilled:
-				c.Logger.Debug(fmt.Sprintf("Order '%d' is filled", order.OrderID))
+				c.Logger.DebugWithNotif(fmt.Sprintf("Order '%d' is filled", order.OrderID))
 				return OrderResult{Order: orderLastStatus}, nil
 			case binance.OrderStatusTypeRejected:
-				c.Logger.Error(fmt.Sprintf("Order '%d' got rejected", order.OrderID))
+				c.Logger.ErrorWithNotif(fmt.Sprintf("Order '%d' got rejected", order.OrderID))
 				return OrderResult{Order: orderLastStatus}, fmt.Errorf("order got rejected")
 			case binance.OrderStatusTypePendingCancel:
 				c.Logger.Debug(fmt.Sprintf("Order '%d' is pending cancel", order.OrderID))
 			case binance.OrderStatusTypeCanceled:
-				c.Logger.Error(fmt.Sprintf("Order '%d' is canceled", order.OrderID))
+				c.Logger.ErrorWithNotif(fmt.Sprintf("Order '%d' is canceled", order.OrderID))
 				return OrderResult{Order: orderLastStatus}, fmt.Errorf("order got canceled")
 			case binance.OrderStatusTypeExpired:
-				c.Logger.Warn(fmt.Sprintf("Order '%d' is expired", order.OrderID))
+				c.Logger.WarnWithNotif(fmt.Sprintf("Order '%d' is expired", order.OrderID))
 				return OrderResult{Order: orderLastStatus}, fmt.Errorf("order is expired")
 			default:
-				c.Logger.Warn(fmt.Sprintf("Unknown status '%s' while waiting for order completion, will continue to wait", order.Status))
+				c.Logger.WarnWithNotif(fmt.Sprintf("Unknown status '%s' while waiting for order completion, will continue to wait", order.Status))
 			}
 		}
 	}

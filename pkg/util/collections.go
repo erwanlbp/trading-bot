@@ -41,3 +41,13 @@ func Map[T, V any](slice []T, mapper Mapper[T, V]) []V {
 	}
 	return res
 }
+
+func FilterSlice[T any](slice []T, predicate Predicate[T]) []T {
+	var res []T
+	for _, t := range slice {
+		if predicate(t) {
+			res = append(res, t)
+		}
+	}
+	return res
+}

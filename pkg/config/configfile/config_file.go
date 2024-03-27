@@ -28,6 +28,17 @@ type ConfigFile struct {
 	TradeTimeout time.Duration `yaml:"trade_timeout"`
 
 	Jump Jump `yaml:"jump"`
+
+	Order struct {
+		Refresh time.Duration `yaml:"refresh"`
+	} `yaml:"order"`
+
+	Telegram struct {
+		Token     string `yaml:"token"`
+		ChannelId int64  `yaml:"channel_id"`
+	} `yaml:"telegram"`
+
+	NotificationLevel []string `yaml:"notification_level"`
 }
 
 type Jump struct {
