@@ -19,7 +19,7 @@ func (b *Bus) Notify(event Event) {
 		for i := 0; i < len(b.subscriptions); i += 1 {
 			sub := b.subscriptions[i]
 
-			if _, ok := sub.EventsSubscribed[event]; ok {
+			if _, ok := sub.EventsSubscribed[event.Name]; ok {
 				// TODO What if this sub is not listening right now, that'll block this func
 				sub.EventsCh <- event
 			}
@@ -27,7 +27,7 @@ func (b *Bus) Notify(event Event) {
 	}()
 }
 
-func (b *Bus) Subscribe(events ...Event) *Subscription {
+func (b *Bus) Subscribe(events ...string) *Subscription {
 	sub := newSubscription(events)
 
 	b.mtx.Lock()

@@ -3,6 +3,7 @@ package process
 import (
 	"context"
 	"fmt"
+	"github.com/erwanlbp/trading-bot/pkg/eventbus/eventdefinition"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -136,6 +137,9 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 
 		logger.Info(fmt.Sprintf("✅ Pair %s is good", pairRatio.Pair.LogSymbol()), zap.String("current_ratio", pairRatio.Ratio.String()), zap.String("last_jump_ratio", lastPairRatio.String()), zap.String("diff", diff.String()), zap.String("fee", feeMultiplier.String()), zap.String("threshold", wantedGain.String()))
 
+		notification := eventdefinition.EventNotification{Level: eventdefinition.MAJOR, Message: fmt.Sprintf("✅ Pair %s is good", pairRatio.Pair.LogSymbol())}
+		p.EventBus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, notification))
+
 		if bestJump == nil || bestJump.Diff.LessThan(diff) {
 			bestJump = &BJ{
 				Pair: pairRatio,
@@ -145,12 +149,15 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 	}
 
 	if bestJump == nil {
-		logger.Debug(fmt.Sprintf("No jump found from coin %s", currentCoin.Coin))
+		printedMessage := fmt.Sprintf("No jump found from coin %s", currentCoin.Coin)
+		logger.Debug(printedMessage)
+		p.EventBus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MINOR, Message: printedMessage}))
 		return
 	}
 
 	if err := p.JumpTo(ctx, bestJump.Pair.Pair); err != nil {
 		logger.Error("Failed to jump", zap.Error(err))
+		p.EventBus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MINOR, Message: "Failed to jump ..."}))
 	}
 }
 
@@ -210,7 +217,9 @@ func (p *JumpFinder) JumpTo(ctx context.Context, pair model.Pair) error {
 	}
 	defer release()
 
+	printedMessage := fmt.Sprintf("Will jump from %s to %s", pair.FromCoin, pair.ToCoin)
 	p.Logger.Info(fmt.Sprintf("Will jump from %s to %s", pair.FromCoin, pair.ToCoin))
+	p.EventBus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MAJOR, Message: printedMessage}))
 
 	p.Binance.LogBalances(ctx)
 
@@ -219,10 +228,14 @@ func (p *JumpFinder) JumpTo(ctx context.Context, pair model.Pair) error {
 	sell, err := p.Binance.Sell(ctx, pair.FromCoin, p.ConfigFile.Bridge)
 	if err != nil {
 		if sell.IsPartiallyExecuted() {
-			p.Logger.Warn(fmt.Sprintf("Sell is partially executed, thus we stay on %s and it will be all sold next jump", pair.FromCoin))
+			printedMessage := fmt.Sprintf("Sell is partially executed, thus we stay on %s and it will be all sold next jump", pair.FromCoin)
+			p.Logger.Warn(printedMessage)
+			p.EventBus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MEDIUM, Message: printedMessage}))
 			return nil
 		}
-		p.Logger.Error(fmt.Sprintf("Failed to sell %s", util.LogSymbol(pair.FromCoin, p.ConfigFile.Bridge)), zap.Error(err))
+		printedMessage = fmt.Sprintf("Failed to sell %s", util.LogSymbol(pair.FromCoin, p.ConfigFile.Bridge))
+		p.Logger.Error(printedMessage, zap.Error(err))
+		p.EventBus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MAJOR, Message: printedMessage}))
 		return err
 	}
 	// In case something goes wrong afterward, save bridge as current coin
@@ -234,9 +247,13 @@ func (p *JumpFinder) JumpTo(ctx context.Context, pair model.Pair) error {
 	buy, err := p.Binance.Buy(ctx, pair.ToCoin, p.ConfigFile.Bridge)
 	if err != nil {
 		if sell.IsPartiallyExecuted() {
-			p.Logger.Warn(fmt.Sprintf("Buy is partially executed, thus we go on %s", pair.ToCoin))
+			printedMessage = fmt.Sprintf("Buy is partially executed, thus we go on %s", pair.ToCoin)
+			p.Logger.Warn(printedMessage)
+			p.EventBus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MEDIUM, Message: printedMessage}))
 		} else {
-			p.Logger.Error(fmt.Sprintf("Failed to buy %s", util.LogSymbol(pair.ToCoin, p.ConfigFile.Bridge)), zap.Error(err))
+			printedMessage := fmt.Sprintf("Failed to buy %s", util.LogSymbol(pair.ToCoin, p.ConfigFile.Bridge))
+			p.Logger.Error(printedMessage, zap.Error(err))
+			p.EventBus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MAJOR, Message: printedMessage}))
 			return err
 		}
 	}
@@ -350,11 +367,15 @@ func (p *JumpFinder) FindGoodCoinFromBridge(ctx context.Context, pairsRatio []mo
 
 	bestCoin := bestPair.Pair.FromCoin
 
-	logger.Info(fmt.Sprintf("Best pair from bridge is %s, thus will buy %s", bestPair.Pair.LogSymbol(), bestCoin), zap.String("diff", bestPairDiff.String()), zap.Duration("last_pair_refresh", bestPair.Timestamp.Sub(bestPairLastRatio.Timestamp)))
+	printedMessage := fmt.Sprintf("Best pair from bridge is %s, thus will buy %s", bestPair.Pair.LogSymbol(), bestCoin)
+	logger.Info(printedMessage, zap.String("diff", bestPairDiff.String()), zap.Duration("last_pair_refresh", bestPair.Timestamp.Sub(bestPairLastRatio.Timestamp)))
+	p.EventBus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MAJOR, Message: printedMessage}))
 
 	buy, err := p.Binance.Buy(ctx, bestCoin, p.ConfigFile.Bridge)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to buy %s", util.LogSymbol(bestCoin, p.ConfigFile.Bridge)), zap.Error(err))
+		printedMessage = fmt.Sprintf("Failed to buy %s", util.LogSymbol(bestCoin, p.ConfigFile.Bridge))
+		logger.Error(printedMessage, zap.Error(err))
+		p.EventBus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MAJOR, Message: printedMessage}))
 		return err
 	}
 

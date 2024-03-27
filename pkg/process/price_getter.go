@@ -84,5 +84,5 @@ func (p *PriceGetter) FetchCoinsPrices(ctx context.Context) {
 		logger.Error("Failed to save coin prices", zap.Error(err))
 	}
 
-	p.EventBus.Notify(eventbus.EventCoinsPricesFetched)
+	p.EventBus.Notify(eventbus.GenerateEvent(eventbus.EventCoinsPricesFetched, nil))
 }

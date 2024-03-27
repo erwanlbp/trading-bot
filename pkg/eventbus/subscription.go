@@ -4,14 +4,14 @@ import "context"
 
 type Subscription struct {
 	EventsCh         chan Event
-	EventsSubscribed map[Event]bool
+	EventsSubscribed map[string]bool
 	closed           bool
 }
 
 type EventHandler func(context.Context, Event)
 
-func newSubscription(events []Event) *Subscription {
-	eventsMap := make(map[Event]bool)
+func newSubscription(events []string) *Subscription {
+	eventsMap := make(map[string]bool)
 	for _, event := range events {
 		eventsMap[event] = true
 	}
