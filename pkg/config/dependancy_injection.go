@@ -52,10 +52,10 @@ func Init() *Config {
 	dbFolderName := "data"
 	dbFileName := "trading_bot"
 	if conf.ConfigFile.TestMode {
-		dbFileName = dbFolderName + "test_trading_bot"
+		dbFileName = "test_trading_bot"
 	}
 	if rootPath, ok := os.LookupEnv("ROOT_PATH"); ok {
-		dbFileName = rootPath + dbFolderName + "/" + dbFileName
+		dbFolderName = rootPath + dbFolderName
 	}
 	sqliteDb, err := sqlite.NewDB(conf.Logger, dbFolderName, dbFileName)
 	if err != nil {
