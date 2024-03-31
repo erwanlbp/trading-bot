@@ -102,6 +102,7 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 	}
 
 	var bestJump *BJ
+	var computedDiff []model.Diff
 	for _, pairRatio := range pairsFromCurrentCoin {
 
 		lastPairRatio := pairRatio.Pair.LastJumpRatio
@@ -142,7 +143,17 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 				Diff: diff,
 			}
 		}
+
+		computedDiff = append(computedDiff, model.Diff{
+			FromCoin:  pairRatio.Pair.FromCoin,
+			ToCoin:    pairRatio.Pair.ToCoin,
+			Timestamp: time.Now(),
+			Diff:      diff,
+		})
 	}
+
+	// Clean all data and savec new one to get info about next jump
+	p.Repository.ReplaceAllDiff(computedDiff)
 
 	if bestJump == nil {
 		logger.Debug(fmt.Sprintf("No jump found from coin %s", currentCoin.Coin))
