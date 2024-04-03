@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/erwanlbp/trading-bot/pkg/binance"
@@ -24,6 +25,7 @@ func main() {
 	LogCurrentCoin(conf.Repository)
 	fmt.Println()
 	LogUSDTValue(ctx, conf.BinanceClient, conf.ConfigFile)
+	LogDiff(conf.Repository)
 }
 
 func LogCurrentCoin(repo *repository.Repository) {
@@ -79,5 +81,21 @@ func LogUSDTValue(ctx context.Context, binance *binance.Client, config *configfi
 		fmt.Printf("%s: %s %s\n", coin, value, config.Bridge)
 		totalValue = totalValue.Add(value)
 	}
-	fmt.Printf("Total value: %s %s\n", totalValue, config.Bridge)
+	fmt.Printf("Total value: %s %s\n\n", totalValue, config.Bridge)
+}
+
+func LogDiff(r *repository.Repository) {
+	diff, err := r.GetDiff()
+	if err != nil {
+		fmt.Println("Failed to get diff :", err.Error())
+		return
+	}
+
+	sort.Slice(diff, func(i, j int) bool {
+		return diff[i].Diff.GreaterThan(diff[j].Diff)
+	})
+	fmt.Printf("Diff informations : %s \n", diff[0].Timestamp)
+	for _, m := range diff {
+		fmt.Printf("%s -> %s : %.4s \n", m.FromCoin, m.ToCoin, m.Diff)
+	}
 }

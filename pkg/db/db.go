@@ -24,5 +24,6 @@ func (d *DB) MigrateSchema() error {
 		model.Pair{},
 		model.PairHistory{},
 		model.Jump{},
+		model.Diff{},
 	)
 }
