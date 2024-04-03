@@ -153,6 +153,10 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 	}
 
 	// Clean all data and savec new one to get info about next jump
+	logger.Debug("Before updating all diff")
+	if len(computedDiff) < 1 {
+		logger.Debug("Computed diff is empty")
+	}
 	err = p.Repository.ReplaceAllDiff(computedDiff)
 	if err != nil {
 		logger.Warn("Error while updating diff in DB", zap.Error(err))
