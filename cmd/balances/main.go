@@ -96,6 +96,6 @@ func LogDiff(r *repository.Repository) {
 	})
 	fmt.Printf("Diff informations : %s \n", diff[0].Timestamp)
 	for _, m := range diff {
-		fmt.Printf("%s -> %s : %s \n", m.FromCoin, m.ToCoin, m.Diff)
+		fmt.Printf("%s -> %s : %.4s \n", m.FromCoin, m.ToCoin, m.Diff)
 	}
 }

@@ -153,7 +153,10 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 	}
 
 	// Clean all data and savec new one to get info about next jump
-	p.Repository.ReplaceAllDiff(computedDiff)
+	err = p.Repository.ReplaceAllDiff(computedDiff)
+	if err != nil {
+		logger.Warn("Error while updating diff in DB", zap.Error(err))
+	}
 
 	if bestJump == nil {
 		logger.Debug(fmt.Sprintf("No jump found from coin %s", currentCoin.Coin))
