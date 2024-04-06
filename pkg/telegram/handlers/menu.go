@@ -2,7 +2,10 @@ package handlers
 
 import (
 	"context"
+
 	"gopkg.in/telebot.v3"
+
+	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 )
 
 var (
@@ -16,10 +19,10 @@ var (
 	mainRow2          = mainMenu.Row(btnConfiguration)
 )
 
-func (p *Handlers) InitMenu(ctx context.Context) {
-	p.Balance(ctx)
+func (p *Handlers) InitMenu(ctx context.Context, conf *configfile.ConfigFile) {
+	p.Balance(ctx, conf)
 	p.LastTenJumps(ctx)
-	p.NextJump(ctx)
+	p.NextJump(ctx, conf)
 	p.Configuration(ctx)
 	p.Notification(ctx)
 	p.BackToMainMenu(ctx)

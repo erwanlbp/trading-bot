@@ -2,8 +2,9 @@ package handlers
 
 import (
 	"context"
-	"gopkg.in/telebot.v3"
 	"time"
+
+	"gopkg.in/telebot.v3"
 )
 
 func (p *Handlers) LastTenJumps(ctx context.Context) {

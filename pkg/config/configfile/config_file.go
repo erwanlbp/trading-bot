@@ -36,6 +36,10 @@ type ConfigFile struct {
 	Telegram struct {
 		Token     string `yaml:"token"`
 		ChannelId int64  `yaml:"channel_id"`
+		Handlers  struct {
+			NbBalancesDisplayed int `yaml:"nb_balances_displayed"`
+			NbDiffDisplayed     int `yaml:"nb_diff_displayed"`
+		} `yaml:"handlers"`
 	} `yaml:"telegram"`
 
 	NotificationLevel []string `yaml:"notification_level"`

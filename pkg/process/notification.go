@@ -3,6 +3,7 @@ package process
 import (
 	"context"
 	"encoding/json"
+
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 	"github.com/erwanlbp/trading-bot/pkg/eventbus/eventdefinition"
 	"github.com/erwanlbp/trading-bot/pkg/log"

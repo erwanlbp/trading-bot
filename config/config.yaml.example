@@ -33,6 +33,19 @@ jump:
   # But gain cannot go below ⬇️
   min: 0.1 # %
 
+order:
+  refresh: 30s # check order status every X
+
 # Telegram bot token
 telegram:
-  token: <Telegram bot token>
+  token: 7174235571:AAEqpQjvKm_Nqkv3tDvUmp06oYsQ1BQRXcA
+  channel_id: -1002005924654
+  handlers :
+    nb_balances_displayed: 10
+    nb_diff_displayed: 20
+
+# Level of notification sent to telegram
+notification_level:
+  - MINOR
+  - MEDIUM
+  - MAJOR

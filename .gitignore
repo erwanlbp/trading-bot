@@ -34,4 +34,5 @@ config/*.yaml
 # Binaries
 trading-bot
 balances
+telegram
 !balances/

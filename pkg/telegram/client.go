@@ -5,8 +5,9 @@ import (
 	"go.uber.org/zap"
 	"time"
 
-	"github.com/erwanlbp/trading-bot/pkg/log"
 	"gopkg.in/telebot.v3"
+
+	"github.com/erwanlbp/trading-bot/pkg/log"
 )
 
 type Client struct {
