@@ -7,8 +7,6 @@ test_mode: true
 binance:
   api_key: <api_key>
   api_key_secret: <api_secret>
-  # com or us, depending on region
-  tld: com
 
 bridge: USDT
 

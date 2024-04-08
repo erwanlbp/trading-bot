@@ -1,6 +1,7 @@
 package configfile
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -17,7 +18,6 @@ type ConfigFile struct {
 	Binance struct {
 		APIKey       string `yaml:"api_key"`
 		APIKeySecret string `yaml:"api_key_secret"`
-		Tld          string `yaml:"tld"`
 	} `yaml:"binance"`
 	Bridge string   `yaml:"bridge"`
 	Coins  []string `yaml:"coins"`
@@ -112,4 +112,21 @@ func ParseConfigFile() (ConfigFile, error) {
 	data.Jump.DefaultLastJump = time.Now()
 
 	return data, nil
+}
+
+func (nc *ConfigFile) ValidateChanges(pc ConfigFile) error {
+	if nc.TestMode != pc.TestMode {
+		return errors.New("cannot change test_mode")
+	}
+	if nc.Binance != pc.Binance {
+		return errors.New("cannot change object binance")
+	}
+	// Maybe we could allow it but I'm not sure of the impacts 😬
+	if nc.Bridge != pc.Bridge {
+		return errors.New("cannot change bridge")
+	}
+
+	// Keep DefaultLastJump date as the original bot start date
+	nc.Jump.DefaultLastJump = pc.Jump.DefaultLastJump
+	return nil
 }

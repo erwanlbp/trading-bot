@@ -3,10 +3,17 @@ package util
 import (
 	"encoding/json"
 	"fmt"
+
+	"gopkg.in/yaml.v3"
 )
 
 func DebugPrintJson(x interface{}) {
 	b, _ := json.Marshal(x)
+	fmt.Println(string(b))
+}
+
+func DebugPrintYaml(x interface{}) {
+	b, _ := yaml.Marshal(x)
 	fmt.Println(string(b))
 }
 
