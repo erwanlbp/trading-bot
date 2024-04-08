@@ -1,6 +1,8 @@
 name: CI
 
 on:
+  pull_request:
+    types: [opened, synchronize] # triggered for new PR and new commits in existing PRs
   push:
     branches:
       - master
