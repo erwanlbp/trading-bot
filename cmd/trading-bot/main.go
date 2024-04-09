@@ -29,9 +29,12 @@ func main() {
 		close(done)
 	}()
 
-	conf := config.Init()
+	conf := config.Init(ctx)
 
 	logger := conf.Logger
+
+	logger.Debug("Starting Telegram notification process")
+	conf.ProcessNotification.Start(ctx)
 
 	logger.Debug("Creating the DB if needed")
 	if err := conf.DB.MigrateSchema(); err != nil {
@@ -47,9 +50,6 @@ func main() {
 	if err := conf.Service.InitializePairs(ctx); err != nil {
 		logger.Fatal("failed initializing coin pairs", zap.Error(err))
 	}
-
-	logger.Debug("Starting notification process")
-	conf.ProcessNotification.Start(ctx)
 
 	logger.Debug("Starting fees getter process")
 	conf.ProcessFeeGetter.Start(ctx)

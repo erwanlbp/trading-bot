@@ -15,10 +15,10 @@ import (
 )
 
 func main() {
-	conf := config.Init()
-
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	conf := config.Init(ctx)
 
 	LogBalances(ctx, conf.BinanceClient, conf.ConfigFile)
 	fmt.Println()

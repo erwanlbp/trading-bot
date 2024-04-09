@@ -17,7 +17,7 @@ func main() {
 	// catch SIGETRM or SIGINTERRUPT
 	signal.Notify(cancelChan, syscall.SIGTERM, syscall.SIGINT)
 
-	conf := config.Init()
+	conf := config.Init(context.Background())
 
 	fmt.Println("current conf")
 	util.DebugPrintYaml(conf.ConfigFile)

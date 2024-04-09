@@ -42,7 +42,7 @@ type Config struct {
 	NotificationLevel []string
 }
 
-func Init() *Config {
+func Init(ctx context.Context) *Config {
 
 	var conf Config
 
@@ -58,7 +58,7 @@ func Init() *Config {
 
 	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, cf.Binance.APIKey, cf.Binance.APIKeySecret)
 
-	telebot, err := telegram.NewClient(conf.Logger, cf.Telegram.Token, cf.Telegram.ChannelId)
+	telebot, err := telegram.NewClient(ctx, conf.Logger, cf.Telegram.Token, cf.Telegram.ChannelId)
 	if err != nil {
 		conf.Logger.Warn("Failed to init telegram bot (trading-bot sill running)", zap.Error(err))
 	}

@@ -49,12 +49,12 @@ func (r *Repository) LogCurrentCoin() {
 		return
 	}
 	if cc.Coin != "" {
-		r.Logger.Info("Current coin is " + cc.Coin)
+		r.Logger.InfoWithNotif("Current coin is " + cc.Coin)
 		return
 	}
 
 	if !hasEverJumped {
-		r.Logger.Info("No current because never jumped")
+		r.Logger.InfoWithNotif("No current because never jumped")
 		return
 	}
 
