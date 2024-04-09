@@ -2,8 +2,9 @@ package telegram
 
 import (
 	"fmt"
-	"go.uber.org/zap"
 	"time"
+
+	"go.uber.org/zap"
 
 	"gopkg.in/telebot.v3"
 
@@ -40,17 +41,6 @@ func NewClient(l *log.Logger, token string, channelId int64) (*Client, error) {
 	}
 
 	return &client, nil
-}
-
-func (c *Client) StartBot() {
-	go func() {
-		c.client.Start()
-		// TODO: how to close properly ?
-	}()
-}
-
-func (c *Client) CreateHandler(endpoint interface{}, handlerFunc telebot.HandlerFunc) {
-	c.client.Handle(endpoint, handlerFunc)
 }
 
 func (c *Client) Send(message string) {

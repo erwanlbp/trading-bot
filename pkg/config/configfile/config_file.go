@@ -36,10 +36,6 @@ type ConfigFile struct {
 	Telegram struct {
 		Token     string `yaml:"token"`
 		ChannelId int64  `yaml:"channel_id"`
-		Handlers  struct {
-			NbBalancesDisplayed int `yaml:"nb_balances_displayed"`
-			NbDiffDisplayed     int `yaml:"nb_diff_displayed"`
-		} `yaml:"handlers"`
 	} `yaml:"telegram"`
 
 	NotificationLevel []string `yaml:"notification_level"`
@@ -92,6 +88,12 @@ func (cf *ConfigFile) ApplyDefaults() {
 	if cf.TradeTimeout == 0 {
 		cf.TradeTimeout = 10 * time.Minute
 	}
+	if cf.Order.Refresh == 0 {
+		cf.Order.Refresh = 15 * time.Second
+	}
+	if len(cf.NotificationLevel) == 0 {
+		cf.NotificationLevel = []string{"MEDIUM", "MAJOR"}
+	}
 
 	// TODO other defaults
 }
@@ -113,18 +115,17 @@ func ParseConfigFile() (ConfigFile, error) {
 		return res, fmt.Errorf("failed reading file: %w", err)
 	}
 
-	var data ConfigFile
-	if err := yaml.Unmarshal(content, &data); err != nil {
+	if err := yaml.Unmarshal(content, &res); err != nil {
 		return res, fmt.Errorf("failed unmarshaling file: %w", err)
 	}
 
-	// To debug if the config is correctly parsed
-	// yamled, _ := yaml.Marshal(data)
-	// fmt.Print(string(yamled))
-
 	res.ApplyDefaults()
 
-	data.Jump.DefaultLastJump = time.Now()
+	// To debug if the config is correctly parsed
+	// yamled, _ := yaml.Marshal(res)
+	// fmt.Print(string(yamled))
 
-	return data, nil
+	res.Jump.DefaultLastJump = time.Now()
+
+	return res, nil
 }

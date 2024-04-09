@@ -15,7 +15,6 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/repository"
 	"github.com/erwanlbp/trading-bot/pkg/service"
 	"github.com/erwanlbp/trading-bot/pkg/telegram"
-	"github.com/erwanlbp/trading-bot/pkg/telegram/handlers"
 )
 
 type Config struct {
@@ -36,7 +35,6 @@ type Config struct {
 	ProcessPriceGetter  *process.PriceGetter
 	ProcessJumpFinder   *process.JumpFinder
 	ProcessFeeGetter    *process.FeeGetter
-	TelegramHandlers    *handlers.Handlers
 	ProcessNotification *process.Notification
 
 	NotificationLevel []string
@@ -85,7 +83,6 @@ func Init() *Config {
 	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, AltCoins)
 	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, conf.ConfigFile, conf.BinanceClient)
 	conf.ProcessFeeGetter = process.NewFeeGetter(conf.Logger, conf.BinanceClient)
-	conf.TelegramHandlers = handlers.NewHandlers(conf.Logger, conf.ConfigFile, conf.TelegramClient, conf.BinanceClient, conf.Repository, conf.NotificationLevel)
 	conf.ProcessNotification = process.NewNotification(conf.Logger, conf.EventBus, conf.TelegramClient)
 
 	return &conf
