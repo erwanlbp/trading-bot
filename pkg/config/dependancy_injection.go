@@ -1,6 +1,8 @@
 package config
 
 import (
+	"context"
+	"fmt"
 	"os"
 
 	"go.uber.org/zap"
@@ -86,4 +88,35 @@ func Init() *Config {
 	conf.ProcessNotification = process.NewNotification(conf.Logger, conf.EventBus, conf.TelegramClient)
 
 	return &conf
+}
+
+// Re-parse config file, reload enabled coins and stuff. Then replace the ConfigFile in the conf by the new one.
+//
+// If an errors occurs, the ConfigFile is not replaced, but the DB might have enabled coins, so you must re-re-load the original config to revert
+func (c *Config) ReloadConfigFile(ctx context.Context) error {
+	logger := c.Logger
+
+	newConfig, err := configfile.ParseConfigFile()
+	if err != nil {
+		return fmt.Errorf("failed parsing config file: %w", err)
+	}
+
+	if err := newConfig.ValidateChanges(*c.ConfigFile); err != nil {
+		return fmt.Errorf("invalid live change: %w", err)
+	}
+
+	logger.Debug("Reloading supported coins")
+	if err := LoadCoins(newConfig.Coins, logger, c.Repository); err != nil {
+		return fmt.Errorf("failed to reload supported coins: %w", err)
+	}
+
+	logger.Debug("Reloading available pairs")
+	if err := c.Service.InitializePairs(ctx); err != nil {
+		return fmt.Errorf("failed re-initializing coin pairs: %w", err)
+	}
+
+	c.Logger.Info("Reloading config file")
+	*c.ConfigFile = newConfig
+
+	return nil
 }
