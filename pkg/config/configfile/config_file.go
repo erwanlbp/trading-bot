@@ -3,10 +3,11 @@ package configfile
 import (
 	"errors"
 	"fmt"
-	"go.uber.org/zap/zapcore"
 	"io"
 	"os"
 	"time"
+
+	"go.uber.org/zap/zapcore"
 
 	"github.com/erwanlbp/trading-bot/pkg/util"
 	"github.com/shopspring/decimal"
@@ -93,7 +94,7 @@ func (cf *ConfigFile) ApplyDefaults() {
 		cf.Order.Refresh = 15 * time.Second
 	}
 	if len(cf.NotificationLevel) == 0 {
-		cf.NotificationLevel = zapcore.DebugLevel.String()
+		cf.NotificationLevel = zapcore.InfoLevel.String()
 	}
 
 	// TODO other defaults
