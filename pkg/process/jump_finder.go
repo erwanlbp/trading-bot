@@ -130,14 +130,13 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 
 		diff := feeMultiplier.Mul(pairRatio.Ratio).Div(lastPairRatio)
 
-
-computedDiff = append(computedDiff, model.Diff{
+		computedDiff = append(computedDiff, model.Diff{
 			FromCoin:  pairRatio.Pair.FromCoin,
 			ToCoin:    pairRatio.Pair.ToCoin,
 			Timestamp: time.Now(),
 			Diff:      diff,
 		})
-	
+
 		if diff.LessThan(wantedGain) {
 			logger.Debug(fmt.Sprintf("❌ Pair %s is not good", pairRatio.Pair.LogSymbol()), zap.String("current_ratio", pairRatio.Ratio.String()), zap.String("last_jump_ratio", lastPairRatio.String()), zap.String("diff", diff.String()), zap.String("fee", feeMultiplier.String()), zap.String("threshold", wantedGain.String()))
 			continue
@@ -151,13 +150,9 @@ computedDiff = append(computedDiff, model.Diff{
 				Diff: diff,
 			}
 		}
-}
+	}
 
 	// Clean all data and savec new one to get info about next jump
-	logger.Debug("Before updating all diff")
-	if len(computedDiff) < 1 {
-		logger.Debug("Computed diff is empty")
-	}
 	err = p.Repository.ReplaceAllDiff(computedDiff)
 	if err != nil {
 		logger.Warn("Error while updating diff in DB", zap.Error(err))

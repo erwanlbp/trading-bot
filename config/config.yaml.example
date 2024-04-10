@@ -30,3 +30,17 @@ jump:
   after: 2m # Go time.Duration
   # But gain cannot go below ⬇️
   min: 0.1 # %
+
+order:
+  refresh: 30s # check order status every X
+
+# Telegram bot token
+telegram:
+  token: <bot token>
+  channel_id: <channel id>
+  handlers :
+    nb_balances_displayed: 10
+    nb_diff_displayed: 20
+
+# Level of notification sent to telegram
+notification_level: info

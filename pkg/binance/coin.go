@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/adshao/go-binance/v2"
@@ -19,41 +20,29 @@ type CoinPrice struct {
 	Timestamp time.Time
 }
 
+type CoinPriceGroupByAlt struct {
+	Coin   string
+	Prices []CoinPrice
+}
+
 // TODO On devrait peut etre la stocker en DB ?
-var SymbolsBlackList map[string]bool = make(map[string]bool)
+var SymbolsBlackList = make(map[string]bool)
 
 func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) (map[string]CoinPrice, error) {
 
-	var symbols map[string]bool = make(map[string]bool)
-
-	for _, coin := range coins {
-		for _, altCoin := range altCoins {
-			if coin == altCoin {
-				continue
-			}
-			if symbol := util.Symbol(coin, altCoin); !SymbolsBlackList[symbol] {
-				symbols[symbol] = true
-			}
-		}
-	}
+	symbols := getSymbols(coins, altCoins)
 
 	if len(symbols) == 0 {
 		return nil, nil
 	}
 
-	uniqueSymbols := util.Keys(symbols)
-	prices, err := c.client.NewListPricesService().Symbols(uniqueSymbols).Do(ctx)
-	if err != nil {
-		if ErrorIs(err, BinanceErrorInvalidSymbol) {
-			prices, err = c.dichotomicPriceFetching(ctx, uniqueSymbols)
-		}
-	}
+	prices, err := getPrices(ctx, symbols, c)
 	if err != nil {
 		return nil, err
 	}
 	now := time.Now()
 
-	var res map[string]CoinPrice = make(map[string]CoinPrice)
+	var res = make(map[string]CoinPrice)
 	for _, price := range prices {
 		coin, altCoin, err := util.Unsymbol(price.Symbol, coins, altCoins)
 		if err != nil {
@@ -72,6 +61,85 @@ func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) (m
 	}
 
 	return res, nil
+}
+
+// Sorted by price and altcoin name
+func (c *Client) GetCoinsPriceGroupByAltCoins(ctx context.Context, coins, altCoins []string) (map[string]CoinPriceGroupByAlt, error) {
+
+	symbols := getSymbols(coins, altCoins)
+
+	if len(symbols) == 0 {
+		return nil, nil
+	}
+
+	prices, err := getPrices(ctx, symbols, c)
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now()
+
+	var res = make(map[string]CoinPriceGroupByAlt)
+
+	balanceGroupByCoin := util.GroupByProperty(prices, func(s *binance.SymbolPrice) string {
+		coin, _, _ := util.Unsymbol(s.Symbol, coins, altCoins)
+		return coin
+	})
+
+	for coin, symbolPrices := range balanceGroupByCoin {
+		var resTmp []CoinPrice
+		sort.Slice(symbolPrices, func(i, j int) bool {
+			return symbolPrices[i].Symbol < symbolPrices[j].Symbol
+		})
+
+		for _, price := range symbolPrices {
+			_, altCoin, err := util.Unsymbol(price.Symbol, coins, altCoins)
+			if err != nil {
+				return nil, fmt.Errorf("couldn't unsymbol %s: %w", coin, err)
+			}
+			p, err := decimal.NewFromString(price.Price)
+			if err != nil {
+				return nil, fmt.Errorf("failed parsing price for %s(%s): %w", price.Symbol, price.Price, err)
+			}
+			resTmp = append(resTmp, CoinPrice{
+				Coin:      coin,
+				AltCoin:   altCoin,
+				Price:     p,
+				Timestamp: now,
+			})
+		}
+		res[coin] = CoinPriceGroupByAlt{
+			Coin:   coin,
+			Prices: resTmp,
+		}
+	}
+
+	return res, nil
+}
+
+func getSymbols(coins []string, altCoins []string) map[string]bool {
+	var symbols = make(map[string]bool)
+	for _, coin := range coins {
+		for _, altCoin := range altCoins {
+			if coin == altCoin {
+				continue
+			}
+			if symbol := util.Symbol(coin, altCoin); !SymbolsBlackList[symbol] {
+				symbols[symbol] = true
+			}
+		}
+	}
+	return symbols
+}
+
+func getPrices(ctx context.Context, symbols map[string]bool, c *Client) ([]*binance.SymbolPrice, error) {
+	uniqueSymbols := util.Keys(symbols)
+	prices, err := c.client.NewListPricesService().Symbols(uniqueSymbols).Do(ctx)
+	if err != nil {
+		if ErrorIs(err, BinanceErrorInvalidSymbol) {
+			prices, err = c.dichotomicPriceFetching(ctx, uniqueSymbols)
+		}
+	}
+	return prices, err
 }
 
 func (c *Client) GetSymbolPrice(ctx context.Context, symbol string) (decimal.Decimal, error) {

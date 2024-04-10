@@ -17,16 +17,13 @@ func (r *Repository) ReplaceAllDiff(computedDiff []model.Diff) error {
 		if err := r.DeleteAllDiff(tx); err != nil {
 			return fmt.Errorf("failed deleting all diff: %w", err)
 		}
-		r.Logger.Debug("All diff deleted")
 		if err := SimpleUpsert(tx, computedDiff...); err != nil {
 			return fmt.Errorf("failed saving computed diff: %w", err)
 		}
-		r.Logger.Debug("All diff saved successfully")
 		return nil
 	}); err != nil {
 		return fmt.Errorf("failed updating diff: %s", err)
 	}
-	r.Logger.Debug("End replace all diff")
 	return nil
 }
 

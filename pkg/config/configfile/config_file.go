@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"go.uber.org/zap/zapcore"
+
 	"github.com/erwanlbp/trading-bot/pkg/util"
 	"github.com/shopspring/decimal"
 	yaml "gopkg.in/yaml.v3"
@@ -28,6 +30,17 @@ type ConfigFile struct {
 	TradeTimeout time.Duration `yaml:"trade_timeout"`
 
 	Jump Jump `yaml:"jump"`
+
+	Order struct {
+		Refresh time.Duration `yaml:"refresh"`
+	} `yaml:"order"`
+
+	Telegram struct {
+		Token     string `yaml:"token"`
+		ChannelId int64  `yaml:"channel_id"`
+	} `yaml:"telegram"`
+
+	NotificationLevel string `yaml:"notification_level"`
 }
 
 type Jump struct {
@@ -66,16 +79,22 @@ func (j Jump) GetNeededGain(lastJump time.Time) decimal.Decimal {
 }
 
 func (cf ConfigFile) GenerateAllSymbolsWithBridge() []string {
-	var res []string
+	var res map[string]bool = make(map[string]bool)
 	for _, coin := range cf.Coins {
-		res = append(res, util.Symbol(coin, cf.Bridge))
+		res[util.Symbol(coin, cf.Bridge)] = true
 	}
-	return res
+	return util.Keys(res)
 }
 
 func (cf *ConfigFile) ApplyDefaults() {
 	if cf.TradeTimeout == 0 {
 		cf.TradeTimeout = 10 * time.Minute
+	}
+	if cf.Order.Refresh == 0 {
+		cf.Order.Refresh = 15 * time.Second
+	}
+	if len(cf.NotificationLevel) == 0 {
+		cf.NotificationLevel = zapcore.InfoLevel.String()
 	}
 
 	// TODO other defaults
@@ -98,20 +117,19 @@ func ParseConfigFile() (ConfigFile, error) {
 		return res, fmt.Errorf("failed reading file: %w", err)
 	}
 
-	var data ConfigFile
-	if err := yaml.Unmarshal(content, &data); err != nil {
+	if err := yaml.Unmarshal(content, &res); err != nil {
 		return res, fmt.Errorf("failed unmarshaling file: %w", err)
 	}
 
-	// To debug if the config is correctly parsed
-	// yamled, _ := yaml.Marshal(data)
-	// fmt.Print(string(yamled))
-
 	res.ApplyDefaults()
 
-	data.Jump.DefaultLastJump = time.Now()
+	// To debug if the config is correctly parsed
+	// yamled, _ := yaml.Marshal(res)
+	// fmt.Print(string(yamled))
 
-	return data, nil
+	res.Jump.DefaultLastJump = time.Now()
+
+	return res, nil
 }
 
 func (nc *ConfigFile) ValidateChanges(pc ConfigFile) error {

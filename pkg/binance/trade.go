@@ -112,7 +112,7 @@ func (c *Client) WaitForOrderCompletion(ctx context.Context, symbol string, orde
 	timeoutCtx, cancel := context.WithTimeout(ctx, c.ConfigFile.TradeTimeout)
 	defer cancel()
 
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(c.ConfigFile.Order.Refresh)
 
 	var orderLastStatus *binance.Order
 	for {

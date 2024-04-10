@@ -51,7 +51,10 @@ func (s *Service) InitializePairs(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed getting coins prices: %w", err)
 	}
+
 	for i, pair := range pairsToSave {
+		// TODO  - CORE
+
 		pair.LastJumpRatio = prices[util.Symbol(pair.FromCoin, s.ConfigFile.Bridge)].Price.Div(prices[util.Symbol(pair.ToCoin, s.ConfigFile.Bridge)].Price)
 		pairsToSave[i] = pair
 	}

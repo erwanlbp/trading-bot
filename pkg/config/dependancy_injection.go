@@ -16,6 +16,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/process"
 	"github.com/erwanlbp/trading-bot/pkg/repository"
 	"github.com/erwanlbp/trading-bot/pkg/service"
+	"github.com/erwanlbp/trading-bot/pkg/telegram"
 )
 
 type Config struct {
@@ -30,24 +31,36 @@ type Config struct {
 
 	EventBus *eventbus.Bus
 
-	BinanceClient *binance.Client
+	BinanceClient  *binance.Client
+	TelegramClient *telegram.Client
 
-	ProcessPriceGetter *process.PriceGetter
-	ProcessJumpFinder  *process.JumpFinder
-	ProcessFeeGetter   *process.FeeGetter
+	ProcessPriceGetter      *process.PriceGetter
+	ProcessJumpFinder       *process.JumpFinder
+	ProcessFeeGetter        *process.FeeGetter
+	ProcessTelegramNotifier *process.TelegramNotifier
 }
 
-func Init() *Config {
+func Init(ctx context.Context) *Config {
 
 	var conf Config
 
-	conf.Logger = log.NewZapLogger()
+	conf.EventBus = eventbus.NewEventBus()
+
+	simpleLogger := log.NewSimpleZapLogger()
 
 	cf, err := configfile.ParseConfigFile()
 	if err != nil {
-		conf.Logger.Fatal("Failed to parse config file", zap.Error(err))
+		simpleLogger.Fatal("Failed to parse config file", zap.Error(err))
 	}
 	conf.ConfigFile = &cf
+
+	telebot, err := telegram.NewClient(ctx, simpleLogger, conf.ConfigFile)
+	if err != nil {
+		simpleLogger.Warn("Failed to init telegram bot (trading-bot still running)", zap.Error(err))
+	}
+	conf.TelegramClient = telebot
+
+	conf.Logger = log.NewZapLogger(conf.EventBus, telegram.ZapCoreWrapper(conf.TelegramClient, conf.ConfigFile))
 
 	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, cf.Binance.APIKey, cf.Binance.APIKeySecret)
 
@@ -67,13 +80,12 @@ func Init() *Config {
 
 	conf.Repository = repository.NewRepository(conf.DB, conf.ConfigFile, conf.Logger)
 
-	conf.EventBus = eventbus.NewEventBus()
-
 	conf.Service = service.NewService(conf.Logger, conf.Repository, conf.BinanceClient, conf.ConfigFile)
 
 	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, AltCoins)
 	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, conf.ConfigFile, conf.BinanceClient)
 	conf.ProcessFeeGetter = process.NewFeeGetter(conf.Logger, conf.BinanceClient)
+	conf.ProcessTelegramNotifier = process.NewTelegramNotifier(conf.Logger, conf.EventBus, conf.TelegramClient)
 
 	return &conf
 }
