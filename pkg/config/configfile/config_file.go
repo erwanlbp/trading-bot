@@ -3,6 +3,7 @@ package configfile
 import (
 	"errors"
 	"fmt"
+	"go.uber.org/zap/zapcore"
 	"io"
 	"os"
 	"time"
@@ -38,7 +39,7 @@ type ConfigFile struct {
 		ChannelId int64  `yaml:"channel_id"`
 	} `yaml:"telegram"`
 
-	NotificationLevel []string `yaml:"notification_level"`
+	NotificationLevel string `yaml:"notification_level"`
 }
 
 type Jump struct {
@@ -92,7 +93,7 @@ func (cf *ConfigFile) ApplyDefaults() {
 		cf.Order.Refresh = 15 * time.Second
 	}
 	if len(cf.NotificationLevel) == 0 {
-		cf.NotificationLevel = []string{"MEDIUM", "MAJOR"}
+		cf.NotificationLevel = zapcore.DebugLevel.String()
 	}
 
 	// TODO other defaults

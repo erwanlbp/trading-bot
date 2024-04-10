@@ -43,9 +43,4 @@ telegram:
     nb_diff_displayed: 20
 
 # Level of notification sent to telegram
-notification_level:
-  - TRACE
-  - DEBUG
-  - INFO
-  - WARN
-  - ERROR
+notification_level: info

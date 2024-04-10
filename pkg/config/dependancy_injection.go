@@ -38,8 +38,6 @@ type Config struct {
 	ProcessJumpFinder   *process.JumpFinder
 	ProcessFeeGetter    *process.FeeGetter
 	ProcessNotification *process.TelegramNotifier
-
-	NotificationLevel []string
 }
 
 func Init(ctx context.Context) *Config {
@@ -62,7 +60,7 @@ func Init(ctx context.Context) *Config {
 	}
 	conf.TelegramClient = telebot
 
-	conf.Logger = log.NewZapLogger(conf.EventBus, telegram.ZapCoreWrapper(conf.TelegramClient))
+	conf.Logger = log.NewZapLogger(conf.EventBus, telegram.ZapCoreWrapper(conf.TelegramClient, conf.ConfigFile))
 
 	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, cf.Binance.APIKey, cf.Binance.APIKeySecret)
 

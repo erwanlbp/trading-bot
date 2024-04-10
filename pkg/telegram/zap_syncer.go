@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -12,16 +13,17 @@ type TelegramZapCore struct {
 	zapcore.Core
 
 	TelegramClient *Client
-	// TODO Add ConfigFile to only log the configured MinLevel to Telegram
+	ConfigFile     *configfile.ConfigFile
 }
 
 var _ zapcore.Core = &TelegramZapCore{}
 
-func ZapCoreWrapper(tc *Client) func(core zapcore.Core) zapcore.Core {
+func ZapCoreWrapper(tc *Client, cf *configfile.ConfigFile) func(core zapcore.Core) zapcore.Core {
 	return func(core zapcore.Core) zapcore.Core {
 		return &TelegramZapCore{
 			Core:           core,
 			TelegramClient: tc,
+			ConfigFile:     cf,
 		}
 	}
 }
@@ -41,7 +43,14 @@ func (f *TelegramZapCore) With(fields []zap.Field) zapcore.Core {
 func (f *TelegramZapCore) Check(e zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
 	res := f.Core.Check(e, ce)
 
-	res.AddCore(e, f)
+	level, err := zapcore.ParseLevel(f.ConfigFile.NotificationLevel)
+	if err != nil {
+		return res
+	}
+
+	if level.Enabled(e.Level) {
+		res.AddCore(e, f)
+	}
 
 	return res
 }
