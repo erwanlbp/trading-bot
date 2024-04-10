@@ -9,12 +9,12 @@ import (
 
 type Logger struct {
 	*zap.Logger
-	*eventbus.Bus
+	EventBus *eventbus.Bus
 }
 
 func NewZapLogger(e *eventbus.Bus) *Logger {
 	l := &Logger{
-		Bus: e,
+		EventBus: e,
 	}
 	l.Init()
 	return l
@@ -40,7 +40,7 @@ func (l *Logger) Debug(msg string, fields ...zapcore.Field) {
 }
 
 func (l *Logger) DebugWithNotif(msg string, fields ...zapcore.Field) {
-	l.Bus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MINOR, Message: msg}))
+	l.EventBus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MINOR, Message: msg}))
 	l.Debug(msg, fields...)
 }
 
@@ -49,7 +49,7 @@ func (l *Logger) Warn(msg string, fields ...zapcore.Field) {
 }
 
 func (l *Logger) WarnWithNotif(msg string, fields ...zapcore.Field) {
-	l.Bus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MEDIUM, Message: msg}))
+	l.EventBus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MEDIUM, Message: msg}))
 	l.Warn(msg, fields...)
 }
 
@@ -58,7 +58,7 @@ func (l *Logger) Info(msg string, fields ...zapcore.Field) {
 }
 
 func (l *Logger) InfoWithNotif(msg string, fields ...zapcore.Field) {
-	l.Bus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MEDIUM, Message: msg}))
+	l.EventBus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MEDIUM, Message: msg}))
 	l.Info(msg, fields...)
 }
 
@@ -67,6 +67,6 @@ func (l *Logger) Error(msg string, fields ...zapcore.Field) {
 }
 
 func (l *Logger) ErrorWithNotif(msg string, fields ...zapcore.Field) {
-	l.Bus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MAJOR, Message: msg}))
+	l.EventBus.Notify(eventbus.GenerateEvent(eventbus.SendNotification, eventdefinition.EventNotification{Level: eventdefinition.MAJOR, Message: msg}))
 	l.Error(msg, fields...)
 }

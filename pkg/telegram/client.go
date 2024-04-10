@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 	"time"
 
 	"go.uber.org/zap"
@@ -21,9 +22,9 @@ type Client struct {
 }
 
 // Documentation : https://github.com/tucnak/telebot
-func NewClient(ctx context.Context, l *log.Logger, token string, channelId int64) (*Client, error) {
+func NewClient(ctx context.Context, l *log.Logger, cf *configfile.ConfigFile) (*Client, error) {
 	pref := telebot.Settings{
-		Token:  token,
+		Token:  cf.Telegram.Token,
 		Poller: &telebot.LongPoller{Timeout: 10 * time.Second},
 	}
 
@@ -32,9 +33,9 @@ func NewClient(ctx context.Context, l *log.Logger, token string, channelId int64
 		return nil, fmt.Errorf("failed to init telegram bot : %w", err)
 	}
 
-	chat, err := b.ChatByID(channelId)
+	chat, err := b.ChatByID(cf.Telegram.ChannelId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get chat with channel id %d : %w", channelId, err)
+		return nil, fmt.Errorf("failed to get chat with channel id %d : %w", cf.Telegram.ChannelId, err)
 	}
 
 	client := Client{

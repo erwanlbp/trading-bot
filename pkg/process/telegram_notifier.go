@@ -10,27 +10,27 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/telegram"
 )
 
-type Notification struct {
+type TelegramNotifier struct {
 	Logger         *log.Logger
 	EventBus       *eventbus.Bus
 	TelegramClient *telegram.Client
 }
 
-func NewNotification(l *log.Logger, e *eventbus.Bus, c *telegram.Client) *Notification {
-	return &Notification{
+func NewTelegramNotifier(l *log.Logger, e *eventbus.Bus, c *telegram.Client) *TelegramNotifier {
+	return &TelegramNotifier{
 		Logger:         l,
 		EventBus:       e,
 		TelegramClient: c,
 	}
 }
 
-func (n Notification) Start(ctx context.Context) {
+func (n TelegramNotifier) Start(ctx context.Context) {
 	sub := n.EventBus.Subscribe(eventbus.SendNotification)
 
 	go sub.Handler(ctx, n.SendNotification)
 }
 
-func (n Notification) SendNotification(ctx context.Context, e eventbus.Event) {
+func (n TelegramNotifier) SendNotification(ctx context.Context, e eventbus.Event) {
 	var event eventdefinition.EventNotification
 	marshal, err := json.Marshal(e.Payload)
 	if err != nil {

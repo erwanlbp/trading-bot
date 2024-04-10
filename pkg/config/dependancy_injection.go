@@ -37,7 +37,7 @@ type Config struct {
 	ProcessPriceGetter  *process.PriceGetter
 	ProcessJumpFinder   *process.JumpFinder
 	ProcessFeeGetter    *process.FeeGetter
-	ProcessNotification *process.Notification
+	ProcessNotification *process.TelegramNotifier
 
 	NotificationLevel []string
 }
@@ -58,7 +58,7 @@ func Init(ctx context.Context) *Config {
 
 	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, cf.Binance.APIKey, cf.Binance.APIKeySecret)
 
-	telebot, err := telegram.NewClient(ctx, conf.Logger, cf.Telegram.Token, cf.Telegram.ChannelId)
+	telebot, err := telegram.NewClient(ctx, conf.Logger, conf.ConfigFile)
 	if err != nil {
 		conf.Logger.Warn("Failed to init telegram bot (trading-bot sill running)", zap.Error(err))
 	}
@@ -85,7 +85,7 @@ func Init(ctx context.Context) *Config {
 	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, AltCoins)
 	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, conf.ConfigFile, conf.BinanceClient)
 	conf.ProcessFeeGetter = process.NewFeeGetter(conf.Logger, conf.BinanceClient)
-	conf.ProcessNotification = process.NewNotification(conf.Logger, conf.EventBus, conf.TelegramClient)
+	conf.ProcessNotification = process.NewTelegramNotifier(conf.Logger, conf.EventBus, conf.TelegramClient)
 
 	return &conf
 }
