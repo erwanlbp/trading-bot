@@ -21,6 +21,6 @@ func (p *Handlers) Configuration(ctx context.Context) {
 
 func (p *Handlers) Notification(ctx context.Context) {
 	p.TelegramClient.CreateHandler(&btnNotification, func(c telebot.Context) error {
-		return c.Send(fmt.Sprintf("Current notifications level %s ", p.NotificationLevelConfig))
+		return c.Send(fmt.Sprintf("Current notifications level"))
 	})
 }

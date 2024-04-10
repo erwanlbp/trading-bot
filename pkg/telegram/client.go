@@ -87,3 +87,14 @@ func (c *Client) queueHandler(ctx context.Context) {
 		}
 	}
 }
+
+func (c *Client) StartBot() {
+	go func() {
+		c.client.Start()
+		// TODO: how to close properly ?
+	}()
+}
+
+func (c *Client) CreateHandler(endpoint interface{}, handlerFunc telebot.HandlerFunc) {
+	c.client.Handle(endpoint, handlerFunc)
+}

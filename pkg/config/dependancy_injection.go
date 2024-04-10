@@ -17,6 +17,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/repository"
 	"github.com/erwanlbp/trading-bot/pkg/service"
 	"github.com/erwanlbp/trading-bot/pkg/telegram"
+	"github.com/erwanlbp/trading-bot/pkg/telegram/handlers"
 )
 
 type Config struct {
@@ -37,7 +38,7 @@ type Config struct {
 	ProcessPriceGetter      *process.PriceGetter
 	ProcessJumpFinder       *process.JumpFinder
 	ProcessFeeGetter        *process.FeeGetter
-	TelegramHandlers    *handlers.Handlers
+	TelegramHandlers        *handlers.Handlers
 	ProcessTelegramNotifier *process.TelegramNotifier
 }
 
@@ -47,9 +48,7 @@ func Init(ctx context.Context) *Config {
 
 	conf.EventBus = eventbus.NewEventBus()
 
-	conf.EventBus = eventbus.NewEventBus()
-
-	simpleLogger := log.NewSimpleZapLogger(conf.EventBus)
+	simpleLogger := log.NewSimpleZapLogger()
 
 	cf, err := configfile.ParseConfigFile()
 	if err != nil {
@@ -63,15 +62,9 @@ func Init(ctx context.Context) *Config {
 	}
 	conf.TelegramClient = telebot
 
-	conf.Logger = log.NewZapLogger(conf.EventBus, telegram.ZapCoreWrapper(conf.TelegramClient, conf.ConfigFile))
+	conf.Logger = log.NewZapLogger(telegram.ZapCoreWrapper(conf.TelegramClient, conf.ConfigFile))
 
 	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, cf.Binance.APIKey, cf.Binance.APIKeySecret)
-
-	telebot, err := telegram.NewClient(conf.Logger, cf.Telegram.Token, cf.Telegram.ChannelId)
-	if err != nil {
-		conf.Logger.Warn("Failed to init telegram bot (trading-bot sill running)", zap.Error(err))
-	}
-	conf.TelegramClient = telebot
 
 	dbFolderName := "data"
 	dbFileName := "trading_bot"
@@ -95,7 +88,7 @@ func Init(ctx context.Context) *Config {
 	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, conf.ConfigFile, conf.BinanceClient)
 	conf.ProcessFeeGetter = process.NewFeeGetter(conf.Logger, conf.BinanceClient)
 	conf.ProcessTelegramNotifier = process.NewTelegramNotifier(conf.Logger, conf.EventBus, conf.TelegramClient)
-	conf.TelegramHandlers = handlers.NewHandlers(conf.Logger, conf.ConfigFile, conf.TelegramClient, conf.BinanceClient, conf.Repository, conf.NotificationLevel)
+	conf.TelegramHandlers = handlers.NewHandlers(conf.Logger, conf.ConfigFile, conf.TelegramClient, conf.BinanceClient, conf.Repository)
 
 	return &conf
 }

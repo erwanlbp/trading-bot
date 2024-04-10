@@ -15,22 +15,20 @@ import (
 )
 
 type Handlers struct {
-	Logger                  *log.Logger
-	Conf                    *configfile.ConfigFile
-	TelegramClient          *telegram.Client
-	BinanceClient           *binance.Client
-	NotificationLevelConfig []string
-	Repository              *repository.Repository
+	Logger         *log.Logger
+	Conf           *configfile.ConfigFile
+	TelegramClient *telegram.Client
+	BinanceClient  *binance.Client
+	Repository     *repository.Repository
 }
 
-func NewHandlers(l *log.Logger, conf *configfile.ConfigFile, c *telegram.Client, b *binance.Client, r *repository.Repository, n []string) *Handlers {
+func NewHandlers(l *log.Logger, conf *configfile.ConfigFile, c *telegram.Client, b *binance.Client, r *repository.Repository) *Handlers {
 	return &Handlers{
-		Logger:                  l,
-		Conf:                    conf,
-		TelegramClient:          c,
-		BinanceClient:           b,
-		NotificationLevelConfig: n,
-		Repository:              r,
+		Logger:         l,
+		Conf:           conf,
+		TelegramClient: c,
+		BinanceClient:  b,
+		Repository:     r,
 	}
 }
 
