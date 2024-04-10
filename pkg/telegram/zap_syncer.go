@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
+	"github.com/erwanlbp/trading-bot/pkg/util"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -61,7 +62,26 @@ func (f *TelegramZapCore) Check(e zapcore.Entry, ce *zapcore.CheckedEntry) *zapc
 // If called, Write should always log the Entry and Fields; it should not
 // replicate the logic of Check.
 func (f *TelegramZapCore) Write(e zapcore.Entry, fields []zap.Field) error {
-	// TODO add fields in message
-	f.TelegramClient.Send(e.Message)
+	message := getIcon(e.Level) + e.Message
+
+	if e.Level.Enabled(zapcore.ErrorLevel) {
+		message += " (Error : " + util.ToJSON(fields) + ")"
+	}
+
+	f.TelegramClient.Send(message)
 	return nil
+}
+
+func getIcon(lvl zapcore.Level) string {
+	switch lvl {
+	case zapcore.DebugLevel:
+		return "🐞 "
+	case zapcore.WarnLevel:
+		return "️⚠️ "
+	case zapcore.InfoLevel:
+		return "ℹ️ "
+	case zapcore.ErrorLevel:
+		return "🚨 "
+	}
+	return "❔ "
 }

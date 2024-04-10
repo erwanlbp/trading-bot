@@ -34,10 +34,10 @@ type Config struct {
 	BinanceClient  *binance.Client
 	TelegramClient *telegram.Client
 
-	ProcessPriceGetter  *process.PriceGetter
-	ProcessJumpFinder   *process.JumpFinder
-	ProcessFeeGetter    *process.FeeGetter
-	ProcessNotification *process.TelegramNotifier
+	ProcessPriceGetter      *process.PriceGetter
+	ProcessJumpFinder       *process.JumpFinder
+	ProcessFeeGetter        *process.FeeGetter
+	ProcessTelegramNotifier *process.TelegramNotifier
 }
 
 func Init(ctx context.Context) *Config {
@@ -85,7 +85,7 @@ func Init(ctx context.Context) *Config {
 	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, AltCoins)
 	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, conf.ConfigFile, conf.BinanceClient)
 	conf.ProcessFeeGetter = process.NewFeeGetter(conf.Logger, conf.BinanceClient)
-	conf.ProcessNotification = process.NewTelegramNotifier(conf.Logger, conf.EventBus, conf.TelegramClient)
+	conf.ProcessTelegramNotifier = process.NewTelegramNotifier(conf.Logger, conf.EventBus, conf.TelegramClient)
 
 	return &conf
 }

@@ -34,7 +34,7 @@ func main() {
 	logger := conf.Logger
 
 	logger.Debug("Starting Telegram notification process")
-	conf.ProcessNotification.Start(ctx)
+	conf.ProcessTelegramNotifier.Start(ctx)
 
 	logger.Debug("Creating the DB if needed")
 	if err := conf.DB.MigrateSchema(); err != nil {

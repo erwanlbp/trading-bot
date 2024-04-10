@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
-	"github.com/erwanlbp/trading-bot/pkg/eventbus/eventdefinition"
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/telegram"
 )
@@ -31,16 +30,14 @@ func (n TelegramNotifier) Start(ctx context.Context) {
 }
 
 func (n TelegramNotifier) SendNotification(ctx context.Context, e eventbus.Event) {
-	var event eventdefinition.EventNotification
+	var payload string
 	marshal, err := json.Marshal(e.Payload)
 	if err != nil {
 	}
-	err = json.Unmarshal(marshal, &event)
+	err = json.Unmarshal(marshal, &payload)
 	if err != nil {
 		return
 	}
 
-	message := eventdefinition.MapLevelToIcon(event.Level) + " " + event.Message
-
-	n.TelegramClient.Send(message)
+	n.TelegramClient.Send(payload)
 }
