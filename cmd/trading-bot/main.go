@@ -51,7 +51,10 @@ func main() {
 		logger.Fatal("failed initializing coin pairs", zap.Error(err))
 	}
 
-	logger.Debug("Starting Telegram menu")
+	logger.Debug("Init telegram handlers")
+	conf.TelegramHandlers.InitHandlers(ctx)
+
+	logger.Debug("Starting telegram bot")
 	conf.TelegramClient.StartBot()
 
 	logger.Debug("Starting fees getter process")

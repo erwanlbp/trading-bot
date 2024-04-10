@@ -2,7 +2,7 @@ package process
 
 import (
 	"context"
-	"encoding/json"
+	"github.com/erwanlbp/trading-bot/pkg/util"
 
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 	"github.com/erwanlbp/trading-bot/pkg/log"
@@ -30,13 +30,5 @@ func (n TelegramNotifier) Start(ctx context.Context) {
 }
 
 func (n TelegramNotifier) SendNotification(ctx context.Context, e eventbus.Event) {
-	var payload string
-	marshal, _ := json.Marshal(e.Payload)
-
-	err := json.Unmarshal(marshal, &payload)
-	if err != nil {
-		return
-	}
-
-	n.TelegramClient.Send(payload)
+	n.TelegramClient.Send(util.ToJSON(e.Payload))
 }

@@ -2,8 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
-
 	"gopkg.in/telebot.v3"
 )
 
@@ -14,13 +12,9 @@ var (
 )
 
 func (p *Handlers) Configuration(ctx context.Context) {
+	p.Notification(ctx)
+
 	p.TelegramClient.CreateHandler(&btnConfiguration, func(c telebot.Context) error {
 		return c.Send("What do you want to do ?", configurationMenu)
-	})
-}
-
-func (p *Handlers) Notification(ctx context.Context) {
-	p.TelegramClient.CreateHandler(&btnNotification, func(c telebot.Context) error {
-		return c.Send(fmt.Sprintf("Current notifications level"))
 	})
 }

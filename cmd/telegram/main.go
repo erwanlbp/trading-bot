@@ -27,7 +27,7 @@ func main() {
 		close(done)
 	}()
 
-	conf := config.Init()
+	conf := config.Init(ctx)
 
 	logger := conf.Logger
 

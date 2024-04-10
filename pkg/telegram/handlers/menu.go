@@ -24,12 +24,12 @@ func (p *Handlers) InitMenu(ctx context.Context, conf *configfile.ConfigFile) {
 	p.LastTenJumps(ctx)
 	p.NextJump(ctx, conf)
 	p.Configuration(ctx)
-	p.Notification(ctx)
 	p.BackToMainMenu(ctx)
 
 	// Setup menus
 	mainMenu.Reply(mainRow, mainRow2)
 	configurationMenu.Reply(configurationRow)
+	notificationMenu.Reply(notificationRow, notificationRow2)
 
 	p.TelegramClient.CreateHandler("/menu", func(c telebot.Context) error {
 		return c.Send("What do you want to do ?", mainMenu)
