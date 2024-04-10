@@ -170,7 +170,7 @@ func (c *Client) dichotomicPriceFetching(ctx context.Context, symbols []string) 
 		price, err := c.client.NewListPricesService().Symbol(symbol).Do(ctx)
 		if err != nil {
 			if ErrorIs(err, BinanceErrorInvalidSymbol) {
-				c.Logger.InfoWithNotif(fmt.Sprintf("Found unexisting symbol '%s' on Binance, won't fetch it anymore", symbol))
+				c.Logger.Info(fmt.Sprintf("Found unexisting symbol '%s' on Binance, won't fetch it anymore", symbol))
 				SymbolsBlackList[symbol] = true
 				continue
 			}

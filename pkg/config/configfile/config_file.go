@@ -77,11 +77,11 @@ func (j Jump) GetNeededGain(lastJump time.Time) decimal.Decimal {
 }
 
 func (cf ConfigFile) GenerateAllSymbolsWithBridge() []string {
-	var res []string
+	var res map[string]bool = make(map[string]bool)
 	for _, coin := range cf.Coins {
-		res = append(res, util.Symbol(coin, cf.Bridge))
+		res[util.Symbol(coin, cf.Bridge)] = true
 	}
-	return res
+	return util.Keys(res)
 }
 
 func (cf *ConfigFile) ApplyDefaults() {

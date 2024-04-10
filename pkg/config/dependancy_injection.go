@@ -48,21 +48,23 @@ func Init(ctx context.Context) *Config {
 
 	conf.EventBus = eventbus.NewEventBus()
 
-	conf.Logger = log.NewZapLogger(conf.EventBus)
+	simpleLogger := log.NewSimpleZapLogger()
 
 	cf, err := configfile.ParseConfigFile()
 	if err != nil {
-		conf.Logger.Fatal("Failed to parse config file", zap.Error(err))
+		simpleLogger.Fatal("Failed to parse config file", zap.Error(err))
 	}
 	conf.ConfigFile = &cf
 
-	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, cf.Binance.APIKey, cf.Binance.APIKeySecret)
-
-	telebot, err := telegram.NewClient(ctx, conf.Logger, cf.Telegram.Token, cf.Telegram.ChannelId)
+	telebot, err := telegram.NewClient(ctx, simpleLogger, cf.Telegram.Token, cf.Telegram.ChannelId)
 	if err != nil {
-		conf.Logger.Warn("Failed to init telegram bot (trading-bot sill running)", zap.Error(err))
+		simpleLogger.Warn("Failed to init telegram bot (trading-bot still running)", zap.Error(err))
 	}
 	conf.TelegramClient = telebot
+
+	conf.Logger = log.NewZapLogger(conf.EventBus, telegram.ZapCoreWrapper(conf.TelegramClient))
+
+	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, cf.Binance.APIKey, cf.Binance.APIKeySecret)
 
 	dbFolderName := "data"
 	dbFileName := "trading_bot"

@@ -81,7 +81,7 @@ func (c *Client) queueHandler(ctx context.Context) {
 		case <-ctx.Done():
 			close(c.queueCh)
 			c.queueCh = nil
-			break
+			return
 		}
 	}
 }

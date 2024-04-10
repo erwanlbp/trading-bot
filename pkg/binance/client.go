@@ -46,6 +46,6 @@ func (c *Client) LogBalances(ctx context.Context) {
 	if err != nil {
 		c.Logger.Error("Failed to get balances", zap.Error(err))
 	} else {
-		c.Logger.InfoWithNotif(fmt.Sprintf("Balances are %s", util.ToJSON(b)))
+		c.Logger.Info(fmt.Sprintf("Balances are %s", util.ToJSON(b)))
 	}
 }
