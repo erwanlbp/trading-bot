@@ -1,10 +1,13 @@
 package configfile
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"time"
+
+	"go.uber.org/zap/zapcore"
 
 	"github.com/erwanlbp/trading-bot/pkg/util"
 	"github.com/shopspring/decimal"
@@ -17,7 +20,6 @@ type ConfigFile struct {
 	Binance struct {
 		APIKey       string `yaml:"api_key"`
 		APIKeySecret string `yaml:"api_key_secret"`
-		Tld          string `yaml:"tld"`
 	} `yaml:"binance"`
 	Bridge string   `yaml:"bridge"`
 	Coins  []string `yaml:"coins"`
@@ -42,7 +44,7 @@ type ConfigFile struct {
 		} `yaml:"handlers"`
 	} `yaml:"telegram"`
 
-	NotificationLevel []string `yaml:"notification_level"`
+	NotificationLevel string `yaml:"notification_level"`
 }
 
 type Jump struct {
@@ -81,16 +83,22 @@ func (j Jump) GetNeededGain(lastJump time.Time) decimal.Decimal {
 }
 
 func (cf ConfigFile) GenerateAllSymbolsWithBridge() []string {
-	var res []string
+	var res map[string]bool = make(map[string]bool)
 	for _, coin := range cf.Coins {
-		res = append(res, util.Symbol(coin, cf.Bridge))
+		res[util.Symbol(coin, cf.Bridge)] = true
 	}
-	return res
+	return util.Keys(res)
 }
 
 func (cf *ConfigFile) ApplyDefaults() {
 	if cf.TradeTimeout == 0 {
 		cf.TradeTimeout = 10 * time.Minute
+	}
+	if cf.Order.Refresh == 0 {
+		cf.Order.Refresh = 15 * time.Second
+	}
+	if len(cf.NotificationLevel) == 0 {
+		cf.NotificationLevel = zapcore.InfoLevel.String()
 	}
 
 	// TODO other defaults
@@ -113,18 +121,34 @@ func ParseConfigFile() (ConfigFile, error) {
 		return res, fmt.Errorf("failed reading file: %w", err)
 	}
 
-	var data ConfigFile
-	if err := yaml.Unmarshal(content, &data); err != nil {
+	if err := yaml.Unmarshal(content, &res); err != nil {
 		return res, fmt.Errorf("failed unmarshaling file: %w", err)
 	}
 
-	// To debug if the config is correctly parsed
-	// yamled, _ := yaml.Marshal(data)
-	// fmt.Print(string(yamled))
-
 	res.ApplyDefaults()
 
-	data.Jump.DefaultLastJump = time.Now()
+	// To debug if the config is correctly parsed
+	// yamled, _ := yaml.Marshal(res)
+	// fmt.Print(string(yamled))
 
-	return data, nil
+	res.Jump.DefaultLastJump = time.Now()
+
+	return res, nil
+}
+
+func (nc *ConfigFile) ValidateChanges(pc ConfigFile) error {
+	if nc.TestMode != pc.TestMode {
+		return errors.New("cannot change test_mode")
+	}
+	if nc.Binance != pc.Binance {
+		return errors.New("cannot change object binance")
+	}
+	// Maybe we could allow it but I'm not sure of the impacts 😬
+	if nc.Bridge != pc.Bridge {
+		return errors.New("cannot change bridge")
+	}
+
+	// Keep DefaultLastJump date as the original bot start date
+	nc.Jump.DefaultLastJump = pc.Jump.DefaultLastJump
+	return nil
 }

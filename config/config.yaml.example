@@ -7,8 +7,6 @@ test_mode: true
 binance:
   api_key: <api_key>
   api_key_secret: <api_secret>
-  # com or us, depending on region
-  tld: com
 
 bridge: USDT
 
@@ -38,14 +36,11 @@ order:
 
 # Telegram bot token
 telegram:
-  token: 7174235571:AAEqpQjvKm_Nqkv3tDvUmp06oYsQ1BQRXcA
-  channel_id: -1002005924654
+  token: <bot token>
+  channel_id: <channel id>
   handlers :
     nb_balances_displayed: 10
     nb_diff_displayed: 20
 
 # Level of notification sent to telegram
-notification_level:
-  - MINOR
-  - MEDIUM
-  - MAJOR
+notification_level: info

@@ -1,6 +1,8 @@
 package config
 
 import (
+	"context"
+	"fmt"
 	"os"
 
 	"go.uber.org/zap"
@@ -15,7 +17,6 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/repository"
 	"github.com/erwanlbp/trading-bot/pkg/service"
 	"github.com/erwanlbp/trading-bot/pkg/telegram"
-	"github.com/erwanlbp/trading-bot/pkg/telegram/handlers"
 )
 
 type Config struct {
@@ -33,28 +34,36 @@ type Config struct {
 	BinanceClient  *binance.Client
 	TelegramClient *telegram.Client
 
-	ProcessPriceGetter  *process.PriceGetter
-	ProcessJumpFinder   *process.JumpFinder
-	ProcessFeeGetter    *process.FeeGetter
+	ProcessPriceGetter      *process.PriceGetter
+	ProcessJumpFinder       *process.JumpFinder
+	ProcessFeeGetter        *process.FeeGetter
 	TelegramHandlers    *handlers.Handlers
-	ProcessNotification *process.Notification
-
-	NotificationLevel []string
+	ProcessTelegramNotifier *process.TelegramNotifier
 }
 
-func Init() *Config {
+func Init(ctx context.Context) *Config {
 
 	var conf Config
 
 	conf.EventBus = eventbus.NewEventBus()
 
-	conf.Logger = log.NewZapLogger(conf.EventBus)
+	conf.EventBus = eventbus.NewEventBus()
+
+	simpleLogger := log.NewSimpleZapLogger(conf.EventBus)
 
 	cf, err := configfile.ParseConfigFile()
 	if err != nil {
-		conf.Logger.Fatal("Failed to parse config file", zap.Error(err))
+		simpleLogger.Fatal("Failed to parse config file", zap.Error(err))
 	}
 	conf.ConfigFile = &cf
+
+	telebot, err := telegram.NewClient(ctx, simpleLogger, conf.ConfigFile)
+	if err != nil {
+		simpleLogger.Warn("Failed to init telegram bot (trading-bot still running)", zap.Error(err))
+	}
+	conf.TelegramClient = telebot
+
+	conf.Logger = log.NewZapLogger(conf.EventBus, telegram.ZapCoreWrapper(conf.TelegramClient, conf.ConfigFile))
 
 	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, cf.Binance.APIKey, cf.Binance.APIKeySecret)
 
@@ -85,8 +94,39 @@ func Init() *Config {
 	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, AltCoins)
 	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, conf.ConfigFile, conf.BinanceClient)
 	conf.ProcessFeeGetter = process.NewFeeGetter(conf.Logger, conf.BinanceClient)
+	conf.ProcessTelegramNotifier = process.NewTelegramNotifier(conf.Logger, conf.EventBus, conf.TelegramClient)
 	conf.TelegramHandlers = handlers.NewHandlers(conf.Logger, conf.ConfigFile, conf.TelegramClient, conf.BinanceClient, conf.Repository, conf.NotificationLevel)
-	conf.ProcessNotification = process.NewNotification(conf.Logger, conf.EventBus, conf.TelegramClient)
 
 	return &conf
+}
+
+// Re-parse config file, reload enabled coins and stuff. Then replace the ConfigFile in the conf by the new one.
+//
+// If an errors occurs, the ConfigFile is not replaced, but the DB might have enabled coins, so you must re-re-load the original config to revert
+func (c *Config) ReloadConfigFile(ctx context.Context) error {
+	logger := c.Logger
+
+	newConfig, err := configfile.ParseConfigFile()
+	if err != nil {
+		return fmt.Errorf("failed parsing config file: %w", err)
+	}
+
+	if err := newConfig.ValidateChanges(*c.ConfigFile); err != nil {
+		return fmt.Errorf("invalid live change: %w", err)
+	}
+
+	logger.Debug("Reloading supported coins")
+	if err := LoadCoins(newConfig.Coins, logger, c.Repository); err != nil {
+		return fmt.Errorf("failed to reload supported coins: %w", err)
+	}
+
+	logger.Debug("Reloading available pairs")
+	if err := c.Service.InitializePairs(ctx); err != nil {
+		return fmt.Errorf("failed re-initializing coin pairs: %w", err)
+	}
+
+	c.Logger.Info("Reloading config file")
+	*c.ConfigFile = newConfig
+
+	return nil
 }
