@@ -31,10 +31,9 @@ func (n TelegramNotifier) Start(ctx context.Context) {
 
 func (n TelegramNotifier) SendNotification(ctx context.Context, e eventbus.Event) {
 	var payload string
-	marshal, err := json.Marshal(e.Payload)
-	if err != nil {
-	}
-	err = json.Unmarshal(marshal, &payload)
+	marshal, _ := json.Marshal(e.Payload)
+
+	err := json.Unmarshal(marshal, &payload)
 	if err != nil {
 		return
 	}
