@@ -1,8 +1,10 @@
 package telegram
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
-	"github.com/erwanlbp/trading-bot/pkg/util"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -31,8 +33,9 @@ func ZapCoreWrapper(tc *Client, cf *configfile.ConfigFile) func(core zapcore.Cor
 
 // With adds structured context to the Core.
 func (f *TelegramZapCore) With(fields []zap.Field) zapcore.Core {
-	f.Core = f.Core.With(fields)
-	return f
+	newCore := *f
+	newCore.Core = newCore.Core.With(fields)
+	return &newCore
 }
 
 // Check determines whether the supplied Entry should be logged (using the
@@ -62,10 +65,25 @@ func (f *TelegramZapCore) Check(e zapcore.Entry, ce *zapcore.CheckedEntry) *zapc
 // If called, Write should always log the Entry and Fields; it should not
 // replicate the logic of Check.
 func (f *TelegramZapCore) Write(e zapcore.Entry, fields []zap.Field) error {
+
 	message := getIcon(e.Level) + e.Message
 
-	if e.Level.Enabled(zapcore.ErrorLevel) {
-		message += " (Error : " + util.ToJSON(fields) + ")"
+	if len(fields) > 0 {
+		var fieldsStr []string
+		for _, field := range fields {
+			switch field.Type {
+			case zapcore.ErrorType:
+				fieldsStr = append(fieldsStr, field.Key+": "+field.Interface.(error).Error())
+			default:
+				if field.String != "" {
+					fieldsStr = append(fieldsStr, field.Key+": "+field.String)
+				} else if field.Interface != nil {
+					fieldsStr = append(fieldsStr, field.Key+": "+fmt.Sprintf("%+v", field.Interface))
+				}
+			}
+		}
+
+		message = message + "\n```\n" + strings.Join(fieldsStr, "\n") + "\n```"
 	}
 
 	f.TelegramClient.Send(message)
@@ -78,10 +96,11 @@ func getIcon(lvl zapcore.Level) string {
 		return "🐞 "
 	case zapcore.WarnLevel:
 		return "️⚠️ "
-	case zapcore.InfoLevel:
-		return "ℹ️ "
 	case zapcore.ErrorLevel:
 		return "🚨 "
+	case zapcore.FatalLevel, zapcore.PanicLevel:
+		return "💥 "
+	default:
+		return ""
 	}
-	return "❔ "
 }

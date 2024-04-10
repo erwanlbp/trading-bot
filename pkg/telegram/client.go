@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 	"time"
+
+	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 
 	"go.uber.org/zap"
 	"gopkg.in/telebot.v3"
@@ -62,7 +63,7 @@ func (c *Client) queueHandler(ctx context.Context) {
 		select {
 		case message := <-c.queueCh:
 			for {
-				_, err := c.client.Send(c.Chat, message)
+				_, err := c.client.Send(c.Chat, message, telebot.ModeMarkdown)
 
 				// In case of 429, retry after waiting
 				var floodErr telebot.FloodError
