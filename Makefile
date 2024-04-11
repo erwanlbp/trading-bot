@@ -5,7 +5,6 @@ build:
 build-all:
 	go build -o trading-bot cmd/trading-bot/main.go
 	go build -o balances cmd/balances/main.go
-	go build -o balances cmd/telegram/main.go
 
 # Start the bot
 run:
