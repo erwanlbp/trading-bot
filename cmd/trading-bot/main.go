@@ -57,8 +57,10 @@ func main() {
 	logger.Debug("Starting telegram bot")
 	conf.TelegramClient.StartBot()
 
-	logger.Debug("Starting fees getter process")
-	conf.ProcessFeeGetter.Start(ctx)
+	if !conf.ConfigFile.TestMode {
+		logger.Debug("Starting fees getter process")
+		conf.ProcessFeeGetter.Start(ctx)
+	}
 
 	logger.Debug("Starting jump finder process")
 	conf.ProcessJumpFinder.Start(ctx)
