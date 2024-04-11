@@ -17,6 +17,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/repository"
 	"github.com/erwanlbp/trading-bot/pkg/service"
 	"github.com/erwanlbp/trading-bot/pkg/telegram"
+	"github.com/erwanlbp/trading-bot/pkg/telegram/handlers"
 )
 
 type Config struct {
@@ -37,6 +38,7 @@ type Config struct {
 	ProcessPriceGetter      *process.PriceGetter
 	ProcessJumpFinder       *process.JumpFinder
 	ProcessFeeGetter        *process.FeeGetter
+	TelegramHandlers        *handlers.Handlers
 	ProcessTelegramNotifier *process.TelegramNotifier
 }
 
@@ -60,7 +62,7 @@ func Init(ctx context.Context) *Config {
 	}
 	conf.TelegramClient = telebot
 
-	conf.Logger = log.NewZapLogger(conf.EventBus, telegram.ZapCoreWrapper(conf.TelegramClient, conf.ConfigFile))
+	conf.Logger = log.NewZapLogger(telegram.ZapCoreWrapper(conf.TelegramClient, conf.ConfigFile))
 
 	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, cf.Binance.APIKey, cf.Binance.APIKeySecret)
 
@@ -86,6 +88,7 @@ func Init(ctx context.Context) *Config {
 	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, conf.ConfigFile, conf.BinanceClient)
 	conf.ProcessFeeGetter = process.NewFeeGetter(conf.Logger, conf.BinanceClient)
 	conf.ProcessTelegramNotifier = process.NewTelegramNotifier(conf.Logger, conf.EventBus, conf.TelegramClient)
+	conf.TelegramHandlers = handlers.NewHandlers(conf.Logger, conf.ConfigFile, conf.TelegramClient, conf.BinanceClient, conf.Repository)
 
 	return &conf
 }

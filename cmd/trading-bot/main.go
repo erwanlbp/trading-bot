@@ -51,8 +51,16 @@ func main() {
 		logger.Fatal("failed initializing coin pairs", zap.Error(err))
 	}
 
-	logger.Debug("Starting fees getter process")
-	conf.ProcessFeeGetter.Start(ctx)
+	logger.Debug("Init telegram handlers")
+	conf.TelegramHandlers.InitHandlers(ctx)
+
+	logger.Debug("Starting telegram bot")
+	conf.TelegramClient.StartBot()
+
+	if !conf.ConfigFile.TestMode {
+		logger.Debug("Starting fees getter process")
+		conf.ProcessFeeGetter.Start(ctx)
+	}
 
 	logger.Debug("Starting jump finder process")
 	conf.ProcessJumpFinder.Start(ctx)

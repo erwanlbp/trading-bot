@@ -3,15 +3,12 @@ package log
 import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-
-	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 )
 
 type ZapCoreWrapper func(zapcore.Core) zapcore.Core
 
 type Logger struct {
 	*zap.Logger
-	EventBus *eventbus.Bus
 }
 
 func NewSimpleZapLogger() *Logger {
@@ -20,10 +17,8 @@ func NewSimpleZapLogger() *Logger {
 	return l
 }
 
-func NewZapLogger(e *eventbus.Bus, telegramZapCoreWrapper ZapCoreWrapper) *Logger {
-	l := &Logger{
-		EventBus: e,
-	}
+func NewZapLogger(telegramZapCoreWrapper ZapCoreWrapper) *Logger {
+	l := &Logger{}
 	l.Init(telegramZapCoreWrapper)
 	return l
 }
