@@ -4,12 +4,12 @@ import (
 	"context"
 	"sort"
 
+	"github.com/shopspring/decimal"
 	"gopkg.in/telebot.v3"
 
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 	"github.com/erwanlbp/trading-bot/pkg/telegram"
 	"github.com/erwanlbp/trading-bot/pkg/util"
-	"github.com/shopspring/decimal"
 )
 
 func (p *Handlers) Balance(ctx context.Context, conf *configfile.ConfigFile) {
@@ -23,7 +23,7 @@ func (p *Handlers) Balance(ctx context.Context, conf *configfile.ConfigFile) {
 
 		var balancePositiveCoin []string
 		for s, d := range balance {
-			if d.GreaterThan(decimal.NewFromFloat(0)) {
+			if d.GreaterThan(decimal.Zero) {
 				balancePositiveCoin = append(balancePositiveCoin, s)
 			}
 		}
