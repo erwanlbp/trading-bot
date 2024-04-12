@@ -49,9 +49,9 @@ func (p *Handlers) CreatePaginatedHandlers(messagePaginated map[int]string, sele
 			index, err := strconv.Atoi(btn.Data)
 			if err != nil {
 				p.Logger.Error("Error while getting index of page to display diff : ", zap.Error(err))
-				return c.Edit(messagePaginated[0], selector)
+				return c.Edit(telegram.FormatForMD(messagePaginated[0]), selector, telebot.ModeMarkdown)
 			}
-			return c.Edit(messagePaginated[index], selector)
+			return c.Edit(telegram.FormatForMD(messagePaginated[index]), selector, telebot.ModeMarkdown)
 		})
 	}
 	return buttons

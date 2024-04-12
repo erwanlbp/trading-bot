@@ -67,7 +67,7 @@ func main() {
 	shouldJumpVar, _ := os.LookupEnv("NO_JUMP")
 	logger.Debug(fmt.Sprintf("NO_JUMP=%s", shouldJumpVar))
 	if shouldJumpVar == "1" {
-		logger.Debug(fmt.Sprintf("Will not start jump finder process"))
+		logger.Warn(fmt.Sprintf("Will not start jump finder process"))
 	} else {
 		logger.Debug("Starting jump finder process")
 		conf.ProcessJumpFinder.Start(ctx)
