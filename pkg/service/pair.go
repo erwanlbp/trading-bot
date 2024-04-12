@@ -9,6 +9,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/model"
 	"github.com/erwanlbp/trading-bot/pkg/repository"
 	"github.com/erwanlbp/trading-bot/pkg/util"
+	"github.com/shopspring/decimal"
 )
 
 // TODO This func seems misplaced, where to put it ?
@@ -37,6 +38,11 @@ func (s *Service) InitializePairs(ctx context.Context) error {
 				continue
 			}
 
+			// If pair is in DB but doesn't exists, we don't need to fetch prices
+			if ok && !pair.Exists {
+				continue
+			}
+
 			if !ok {
 				pair = model.Pair{FromCoin: coinFrom, ToCoin: coinTo, Exists: true}
 			}
@@ -53,10 +59,12 @@ func (s *Service) InitializePairs(ctx context.Context) error {
 	}
 
 	for i, pair := range pairsToSave {
-		// TODO  - CORE
-
-		pair.LastJumpRatio = prices[util.Symbol(pair.FromCoin, s.ConfigFile.Bridge)].Price.Div(prices[util.Symbol(pair.ToCoin, s.ConfigFile.Bridge)].Price)
-		pairsToSave[i] = pair
+		fromPrice := prices[util.Symbol(pair.FromCoin, s.ConfigFile.Bridge)].Price
+		toPrice := prices[util.Symbol(pair.ToCoin, s.ConfigFile.Bridge)].Price
+		if !toPrice.Equal(decimal.Zero) {
+			pair.LastJumpRatio = fromPrice.Div(toPrice)
+			pairsToSave[i] = pair
+		}
 	}
 
 	if err := s.Repository.DB.Transaction(func(tx *gorm.DB) error {

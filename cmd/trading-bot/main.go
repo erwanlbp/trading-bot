@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -62,8 +63,10 @@ func main() {
 		conf.ProcessFeeGetter.Start(ctx)
 	}
 
-	logger.Debug("Starting jump finder process")
-	conf.ProcessJumpFinder.Start(ctx)
+	if ok, _ := strconv.ParseBool(os.Getenv("NO_JUMP")); !ok {
+		logger.Debug("Starting jump finder process")
+		conf.ProcessJumpFinder.Start(ctx)
+	}
 
 	logger.Debug("Starting coins price getter process")
 	conf.ProcessPriceGetter.Start(ctx)
