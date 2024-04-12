@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -62,8 +63,15 @@ func main() {
 		conf.ProcessFeeGetter.Start(ctx)
 	}
 
-	logger.Debug("Starting jump finder process")
-	conf.ProcessJumpFinder.Start(ctx)
+	// Warning : only for TEST. Do not use it in production !
+	shouldJumpVar, _ := os.LookupEnv("NO_JUMP")
+	logger.Debug(fmt.Sprintf("NO_JUMP=%s", shouldJumpVar))
+	if shouldJumpVar == "1" {
+		logger.Debug(fmt.Sprintf("Will not start jump finder process"))
+	} else {
+		logger.Debug("Starting jump finder process")
+		conf.ProcessJumpFinder.Start(ctx)
+	}
 
 	logger.Debug("Starting coins price getter process")
 	conf.ProcessPriceGetter.Start(ctx)
