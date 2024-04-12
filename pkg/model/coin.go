@@ -9,8 +9,9 @@ import (
 const CoinTableName = "coins"
 
 type Coin struct {
-	Coin    string `gorm:"primaryKey"`
-	Enabled bool
+	Coin      string `gorm:"primaryKey"`
+	Enabled   bool
+	EnabledOn time.Time
 }
 
 func (Coin) TableName() string {

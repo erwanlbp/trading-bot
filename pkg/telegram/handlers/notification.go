@@ -13,8 +13,6 @@ var (
 	btnInfo          = notificationMenu.Text("ℹ️ Info")
 	btnWarn          = notificationMenu.Text("⚠️ Warn")
 	btnError         = notificationMenu.Text("🚨 Error")
-	notificationRow  = notificationMenu.Row(btnDebug, btnInfo, btnWarn, btnError)
-	notificationRow2 = notificationMenu.Row(btnBackToMainMenu)
 )
 
 func (p *Handlers) Notification(ctx context.Context) {

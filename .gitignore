@@ -27,6 +27,7 @@ data/*.db
 
 # Config files
 config/*.yaml
+config/*.yaml.bkp
 
 # Intellij
 /.idea

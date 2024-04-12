@@ -21,3 +21,8 @@ func ToJSON(x interface{}) string {
 	b, _ := json.Marshal(x)
 	return string(b)
 }
+
+func ToYAML(x interface{}) string {
+	b, _ := yaml.Marshal(x)
+	return string(b)
+}

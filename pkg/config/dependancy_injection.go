@@ -9,6 +9,7 @@ import (
 
 	"github.com/erwanlbp/trading-bot/pkg/binance"
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
+	"github.com/erwanlbp/trading-bot/pkg/config/globalconf"
 	"github.com/erwanlbp/trading-bot/pkg/db"
 	"github.com/erwanlbp/trading-bot/pkg/db/sqlite"
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
@@ -41,6 +42,8 @@ type Config struct {
 	TelegramHandlers        *handlers.Handlers
 	ProcessTelegramNotifier *process.TelegramNotifier
 }
+
+var _ globalconf.GlobalConfModifier = &Config{}
 
 func Init(ctx context.Context) *Config {
 
@@ -88,7 +91,7 @@ func Init(ctx context.Context) *Config {
 	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, conf.ConfigFile, conf.BinanceClient)
 	conf.ProcessFeeGetter = process.NewFeeGetter(conf.Logger, conf.BinanceClient)
 	conf.ProcessTelegramNotifier = process.NewTelegramNotifier(conf.Logger, conf.EventBus, conf.TelegramClient)
-	conf.TelegramHandlers = handlers.NewHandlers(conf.Logger, conf.ConfigFile, conf.TelegramClient, conf.BinanceClient, conf.Repository)
+	conf.TelegramHandlers = handlers.NewHandlers(conf.Logger, conf.ConfigFile, conf.TelegramClient, conf.BinanceClient, conf.Repository, &conf)
 
 	return &conf
 }
@@ -118,7 +121,7 @@ func (c *Config) ReloadConfigFile(ctx context.Context) error {
 		return fmt.Errorf("failed re-initializing coin pairs: %w", err)
 	}
 
-	c.Logger.Info("Reloading config file")
+	c.Logger.Debug("Reloading config file")
 	*c.ConfigFile = newConfig
 
 	return nil

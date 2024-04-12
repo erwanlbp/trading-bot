@@ -13,6 +13,14 @@ func Keys[K comparable, V any](m map[K]V) []K {
 	return res
 }
 
+func Values[K comparable, V any](m map[K]V) []V {
+	var res []V
+	for _, v := range m {
+		res = append(res, v)
+	}
+	return res
+}
+
 func AsMap[T any, K comparable](slice []T, keyGetter Mapper[T, K]) map[K]T {
 	res := make(map[K]T)
 	for _, e := range slice {
@@ -30,8 +38,10 @@ func Exists[T any](slice []T, finder Predicate[T]) bool {
 	return false
 }
 
-func Identity[T any](t T) T {
-	return t
+func Identity[T any]() Mapper[T, T] {
+	return func(t T) T {
+		return t
+	}
 }
 
 func Map[T, V any](slice []T, mapper Mapper[T, V]) []V {
@@ -87,4 +97,8 @@ func Chunk[T any](slice []T, size int) [][]T {
 	}
 
 	return chunks
+}
+
+func Distinct[T comparable](data []T) []T {
+	return Keys(AsMap(data, Identity[T]()))
 }

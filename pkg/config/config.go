@@ -2,8 +2,7 @@ package config
 
 import (
 	"fmt"
-
-	"gorm.io/gorm"
+	"time"
 
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/model"
@@ -22,28 +21,30 @@ func LoadCoins(enabledCoins []string, logger *log.Logger, repo *repository.Repos
 	if err != nil {
 		return fmt.Errorf("failed fetching existing coins from DB: %w", err)
 	}
+	existingCoinsMap := util.AsMap(existingCoins, model.CoinIDMapper())
 
-	var newAllCoins []model.Coin
 	// All coins in the supported coins file are enabled
+	now := time.Now()
 	for _, coin := range enabledCoins {
-		newAllCoins = append(newAllCoins, model.Coin{Coin: coin, Enabled: true})
+		existingCoin, alreadyCreated := existingCoinsMap[coin]
+		if !alreadyCreated {
+			existingCoinsMap[coin] = model.Coin{Coin: coin, Enabled: true, EnabledOn: now}
+		} else if !existingCoin.Enabled {
+			existingCoin.Enabled = true
+			existingCoinsMap[coin] = existingCoin
+		}
 	}
 	// All coins that were previously in DB are now disabled
-	for _, existingCoin := range existingCoins {
-		if !util.Exists(newAllCoins, model.SameCoinPredicate(existingCoin)) {
-			existingCoin.Enabled = false
-			newAllCoins = append(newAllCoins, existingCoin)
+	for c, coin := range existingCoinsMap {
+		if !util.Exists(enabledCoins, func(enabledCoin string) bool { return c == enabledCoin }) {
+			coin.Enabled = false
+			existingCoinsMap[c] = coin
 		}
 	}
-	if err := repo.DB.Transaction(func(tx *gorm.DB) error {
-		if err := repo.DeleteAllCoins(tx); err != nil {
-			return fmt.Errorf("failed deleting all coins: %w", err)
-		}
-		if err := repository.SimpleUpsert(tx, newAllCoins...); err != nil {
-			return fmt.Errorf("failed updating coins: %w", err)
-		}
+	if len(existingCoinsMap) == 0 {
 		return nil
-	}); err != nil {
+	}
+	if err := repository.SimpleUpsert(repo.DB.DB, util.Values(existingCoinsMap)...); err != nil {
 		return fmt.Errorf("failed updating coins: %w", err)
 	}
 
