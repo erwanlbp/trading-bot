@@ -37,7 +37,7 @@ type ConfigFile struct {
 
 	Telegram struct {
 		Token     string `yaml:"token,omitempty"`
-		ChannelId int64  `yaml:"channel_id,omitempty"`
+		ChannelID string `yaml:"channel_id,omitempty"`
 		Handlers  struct {
 			NbBalancesDisplayed int `yaml:"nb_balances_displayed"`
 			NbDiffDisplayed     int `yaml:"nb_diff_displayed"`
@@ -104,13 +104,18 @@ func (cf *ConfigFile) ApplyDefaults() {
 	// TODO other defaults
 }
 
-func ParseConfigFile() (ConfigFile, error) {
-	var res ConfigFile
-
-	filepath := "config/config.yaml" // TODO Get it more dynamically ?
+func getConfigFilePath() string {
+	filepath := "config/config.yaml"
 	if rootPath, ok := os.LookupEnv("ROOT_PATH"); ok {
 		filepath = rootPath + filepath
 	}
+	return filepath
+}
+
+func ParseConfigFile() (ConfigFile, error) {
+	var res ConfigFile
+
+	filepath := getConfigFilePath()
 	file, err := os.Open(filepath)
 	if err != nil {
 		return res, fmt.Errorf("failed opening file: %w", err)
@@ -136,6 +141,37 @@ func ParseConfigFile() (ConfigFile, error) {
 	return res, nil
 }
 
+func CopyFileToBackup() error {
+	src := getConfigFilePath()
+	dst := src + ".bkp"
+
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return fmt.Errorf("failed reading file '%s': %w", src, err)
+	}
+
+	if err := os.WriteFile(dst, data, 0644); err != nil {
+		return fmt.Errorf("failed writing file '%s': %w", dst, err)
+	}
+
+	return nil
+}
+
+func (c *ConfigFile) SaveToFile() error {
+
+	content, err := yaml.Marshal(c)
+	if err != nil {
+		return fmt.Errorf("failed to marshal conf object to yaml: %w", err)
+	}
+
+	filepath := getConfigFilePath()
+	if err := os.WriteFile(filepath, content, 0644); err != nil {
+		return fmt.Errorf("failed writing file '%s': %w", filepath, err)
+	}
+
+	return nil
+}
+
 func (nc *ConfigFile) ValidateChanges(pc ConfigFile) error {
 	if nc.TestMode != pc.TestMode {
 		return errors.New("cannot change test_mode")
@@ -154,8 +190,8 @@ func (nc *ConfigFile) ValidateChanges(pc ConfigFile) error {
 }
 
 func (c *ConfigFile) RemoveSecrets() {
-	c.Binance.APIKey = ""
-	c.Binance.APIKeySecret = ""
-	c.Telegram.Token = ""
-	c.Telegram.ChannelId = 0
+	c.Binance.APIKey = "<hidden>"
+	c.Binance.APIKeySecret = "<hidden>"
+	c.Telegram.Token = "<hidden>"
+	c.Telegram.ChannelID = "<hidden>"
 }

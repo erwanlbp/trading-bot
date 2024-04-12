@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
@@ -34,9 +35,13 @@ func NewClient(ctx context.Context, l *log.Logger, cf *configfile.ConfigFile) (*
 		return nil, fmt.Errorf("failed to init telegram bot : %w", err)
 	}
 
-	chat, err := b.ChatByID(cf.Telegram.ChannelId)
+	channelID, err := strconv.ParseInt(cf.Telegram.ChannelID, 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get chat with channel id %d : %w", cf.Telegram.ChannelId, err)
+		return nil, fmt.Errorf("invalid channelID '%s': %w", cf.Telegram.ChannelID, err)
+	}
+	chat, err := b.ChatByID(channelID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get chat with channel id %s : %w", cf.Telegram.ChannelID, err)
 	}
 
 	client := Client{

@@ -9,14 +9,23 @@ import (
 )
 
 var (
-	mainMenu          = &telebot.ReplyMarkup{ResizeKeyboard: true}
-	btnBalance        = mainMenu.Text("⚖️ Balances")
-	btnLast10Jumps    = mainMenu.Text("Last 10 jumps")
-	btnNextJump       = mainMenu.Text("⤴️ Next jump")
-	btnConfiguration  = mainMenu.Text("⚙️ Configuration")
 	btnBackToMainMenu = mainMenu.Text("⬅️ Back")
-	mainRow           = mainMenu.Row(btnBalance, btnLast10Jumps, btnNextJump)
-	mainRow2          = mainMenu.Row(btnConfiguration)
+
+	// Main menu
+	mainMenu         = &telebot.ReplyMarkup{ResizeKeyboard: true}
+	btnBalance       = mainMenu.Text("⚖️ Balances")
+	btnLast10Jumps   = mainMenu.Text("Last 10 jumps")
+	btnNextJump      = mainMenu.Text("⤴️ Next jump")
+	btnConfiguration = mainMenu.Text("⚙️ Configuration")
+
+	// Configuration menu
+	configurationMenu = &telebot.ReplyMarkup{ResizeKeyboard: true}
+	btnListCoins      = configurationMenu.Text("👛 List coins")
+	btnEditCoins      = configurationMenu.Text("⛏️ Edit coins")
+	btnNotification   = configurationMenu.Text("🔔️ Notification")
+	btnReloadConfig   = configurationMenu.Text("♻️ Reload config.yaml")
+	btnShowConfigFile = configurationMenu.Text("👀 Show config.yaml")
+	btnShowLiveConfig = configurationMenu.Text("🔥 Show live config")
 )
 
 func (p *Handlers) InitMenu(ctx context.Context, conf *configfile.ConfigFile) {
@@ -24,20 +33,28 @@ func (p *Handlers) InitMenu(ctx context.Context, conf *configfile.ConfigFile) {
 	p.LastTenJumps(ctx)
 	p.NextJump(ctx, conf)
 	p.Configuration(ctx)
-	p.BackToMainMenu(ctx)
+	p.TelegramClient.CreateHandler(&btnBackToMainMenu, p.BackToMainMenu)
 
 	// Setup menus
-	mainMenu.Reply(mainRow, mainRow2)
-	configurationMenu.Reply(configurationMenu.Row(btnNotification, btnReloadConfig), configurationMenu.Row(btnBackToMainMenu))
-	notificationMenu.Reply(notificationRow, notificationRow2)
+	mainMenu.Reply(
+		mainMenu.Row(btnBalance, btnLast10Jumps, btnNextJump),
+		mainMenu.Row(btnConfiguration),
+	)
+	configurationMenu.Reply(
+		configurationMenu.Row(btnListCoins, btnEditCoins, btnNotification),
+		configurationMenu.Row(btnShowLiveConfig, btnShowConfigFile, btnReloadConfig),
+		configurationMenu.Row(btnBackToMainMenu),
+	)
+	notificationMenu.Reply(
+		notificationMenu.Row(btnDebug, btnInfo, btnWarn, btnError),
+		notificationMenu.Row(btnBackToMainMenu),
+	)
 
 	p.TelegramClient.CreateHandler("/menu", func(c telebot.Context) error {
 		return c.Send("What do you want to do ?", mainMenu)
 	})
 }
 
-func (p *Handlers) BackToMainMenu(ctx context.Context) {
-	p.TelegramClient.CreateHandler(&btnBackToMainMenu, func(c telebot.Context) error {
-		return c.Send("Back to main menu", mainMenu)
-	})
+func (p *Handlers) BackToMainMenu(c telebot.Context) error {
+	return c.Send("Back to menu", mainMenu)
 }
