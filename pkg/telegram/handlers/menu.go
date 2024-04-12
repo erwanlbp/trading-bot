@@ -28,7 +28,7 @@ func (p *Handlers) InitMenu(ctx context.Context, conf *configfile.ConfigFile) {
 
 	// Setup menus
 	mainMenu.Reply(mainRow, mainRow2)
-	configurationMenu.Reply(configurationRow)
+	configurationMenu.Reply(configurationMenu.Row(btnNotification, btnReloadConfig), configurationMenu.Row(btnBackToMainMenu))
 	notificationMenu.Reply(notificationRow, notificationRow2)
 
 	p.TelegramClient.CreateHandler("/menu", func(c telebot.Context) error {

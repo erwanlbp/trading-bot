@@ -9,6 +9,7 @@ import (
 
 	"github.com/erwanlbp/trading-bot/pkg/binance"
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
+	"github.com/erwanlbp/trading-bot/pkg/config/globalconf"
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/repository"
 	"github.com/erwanlbp/trading-bot/pkg/telegram"
@@ -20,15 +21,17 @@ type Handlers struct {
 	TelegramClient *telegram.Client
 	BinanceClient  *binance.Client
 	Repository     *repository.Repository
+	GlobalConf     globalconf.GlobalConfModifier
 }
 
-func NewHandlers(l *log.Logger, conf *configfile.ConfigFile, c *telegram.Client, b *binance.Client, r *repository.Repository) *Handlers {
+func NewHandlers(l *log.Logger, conf *configfile.ConfigFile, c *telegram.Client, b *binance.Client, r *repository.Repository, gc globalconf.GlobalConfModifier) *Handlers {
 	return &Handlers{
 		Logger:         l,
 		Conf:           conf,
 		TelegramClient: c,
 		BinanceClient:  b,
 		Repository:     r,
+		GlobalConf:     gc,
 	}
 }
 

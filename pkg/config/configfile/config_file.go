@@ -18,8 +18,8 @@ type ConfigFile struct {
 	TestMode bool `yaml:"test_mode"`
 
 	Binance struct {
-		APIKey       string `yaml:"api_key"`
-		APIKeySecret string `yaml:"api_key_secret"`
+		APIKey       string `yaml:"api_key,omitempty"`
+		APIKeySecret string `yaml:"api_key_secret,omitempty"`
 	} `yaml:"binance"`
 	Bridge string   `yaml:"bridge"`
 	Coins  []string `yaml:"coins"`
@@ -36,8 +36,8 @@ type ConfigFile struct {
 	} `yaml:"order"`
 
 	Telegram struct {
-		Token     string `yaml:"token"`
-		ChannelId int64  `yaml:"channel_id"`
+		Token     string `yaml:"token,omitempty"`
+		ChannelId int64  `yaml:"channel_id,omitempty"`
 		Handlers  struct {
 			NbBalancesDisplayed int `yaml:"nb_balances_displayed"`
 			NbDiffDisplayed     int `yaml:"nb_diff_displayed"`
@@ -151,4 +151,11 @@ func (nc *ConfigFile) ValidateChanges(pc ConfigFile) error {
 	// Keep DefaultLastJump date as the original bot start date
 	nc.Jump.DefaultLastJump = pc.Jump.DefaultLastJump
 	return nil
+}
+
+func (c *ConfigFile) RemoveSecrets() {
+	c.Binance.APIKey = ""
+	c.Binance.APIKeySecret = ""
+	c.Telegram.Token = ""
+	c.Telegram.ChannelId = 0
 }
