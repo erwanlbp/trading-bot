@@ -68,8 +68,10 @@ func main() {
 		conf.ProcessJumpFinder.Start(ctx)
 	}
 
-	logger.Debug("Starting coins price getter process")
-	conf.ProcessPriceGetter.Start(ctx)
+	if ok, _ := strconv.ParseBool(os.Getenv("NO_PRICE_GETTER")); !ok {
+		logger.Debug("Starting coins price getter process")
+		conf.ProcessPriceGetter.Start(ctx)
+	}
 
 	conf.BinanceClient.LogBalances(ctx)
 	conf.Repository.LogCurrentCoin()

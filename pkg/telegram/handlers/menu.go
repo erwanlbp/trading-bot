@@ -14,9 +14,14 @@ var (
 	// Main menu
 	mainMenu         = &telebot.ReplyMarkup{ResizeKeyboard: true}
 	btnBalance       = mainMenu.Text("⚖️ Balances")
-	btnLast10Jumps   = mainMenu.Text("Last 10 jumps")
+	btnLast10Jumps   = mainMenu.Text("🦘 Last jumps")
 	btnNextJump      = mainMenu.Text("⤴️ Next jump")
 	btnConfiguration = mainMenu.Text("⚙️ Configuration")
+	btnChart         = mainMenu.Text("📊 Chart")
+
+	// Chart menu
+	chartMenu   = &telebot.ReplyMarkup{ResizeKeyboard: true}
+	btnNewChart = mainMenu.Text("➕ New")
 
 	// Configuration menu
 	configurationMenu = &telebot.ReplyMarkup{ResizeKeyboard: true}
@@ -34,10 +39,14 @@ func (p *Handlers) InitMenu(ctx context.Context, conf *configfile.ConfigFile) {
 	p.NextJump(ctx, conf)
 	p.Configuration(ctx)
 	p.TelegramClient.CreateHandler(&btnBackToMainMenu, p.BackToMainMenu)
+	p.TelegramClient.CreateHandler(&btnChart, p.ChartMenu)
+	p.TelegramClient.CreateHandler(&btnNewChart, p.NewChart)
+	p.TelegramClient.CreateHandler("/new_chart", p.ValidateNewChart)
 
 	// Setup menus
 	mainMenu.Reply(
-		mainMenu.Row(btnBalance, btnLast10Jumps, btnNextJump),
+		mainMenu.Row(btnBalance, btnLast10Jumps),
+		mainMenu.Row(btnNextJump, btnChart),
 		mainMenu.Row(btnConfiguration),
 	)
 	configurationMenu.Reply(
