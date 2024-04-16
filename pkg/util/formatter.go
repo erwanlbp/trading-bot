@@ -6,7 +6,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-func ToASCIITable[T any](data []T, headers []string, columns func(T) []string) string {
+func ToASCIITable[T any](data []T, headers []string, footer []string, columns func(T) []string) string {
 
 	var builder strings.Builder
 
@@ -17,6 +17,7 @@ func ToASCIITable[T any](data []T, headers []string, columns func(T) []string) s
 	for _, item := range data {
 		table.Append(columns(item))
 	}
+	table.SetFooter(footer)
 	table.Render() // Send output
 
 	return builder.String()
