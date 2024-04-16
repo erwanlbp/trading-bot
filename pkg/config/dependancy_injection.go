@@ -3,7 +3,6 @@ package config
 import (
 	"context"
 	"fmt"
-	_const "github.com/erwanlbp/trading-bot/pkg/const"
 	"os"
 
 	"go.uber.org/zap"
@@ -11,6 +10,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/binance"
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 	"github.com/erwanlbp/trading-bot/pkg/config/globalconf"
+	"github.com/erwanlbp/trading-bot/pkg/constant"
 	"github.com/erwanlbp/trading-bot/pkg/db"
 	"github.com/erwanlbp/trading-bot/pkg/db/sqlite"
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
@@ -88,7 +88,7 @@ func Init(ctx context.Context) *Config {
 
 	conf.Service = service.NewService(conf.Logger, conf.Repository, conf.BinanceClient, conf.ConfigFile)
 
-	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, _const.AltCoins)
+	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, constant.AltCoins)
 	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, conf.ConfigFile, conf.BinanceClient)
 	conf.ProcessFeeGetter = process.NewFeeGetter(conf.Logger, conf.BinanceClient)
 	conf.ProcessTelegramNotifier = process.NewTelegramNotifier(conf.Logger, conf.EventBus, conf.TelegramClient)

@@ -9,7 +9,7 @@ import (
 
 	"github.com/erwanlbp/trading-bot/pkg/binance"
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
-	_const "github.com/erwanlbp/trading-bot/pkg/const"
+	"github.com/erwanlbp/trading-bot/pkg/constant"
 	"github.com/erwanlbp/trading-bot/pkg/telegram"
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
@@ -31,7 +31,7 @@ func (p *Handlers) Balance(ctx context.Context, conf *configfile.ConfigFile) {
 
 		balancePositiveCoin := getPositiveBalance(balance)
 
-		altCoinList := append([]string{}, _const.AltCoins...) // TODO put in config file ?
+		altCoinList := constant.AltCoins // TODO put in config file ?
 		sort.Strings(altCoinList)
 		prices, err := binanceClient.GetCoinsPrice(ctx, balancePositiveCoin, altCoinList)
 		if err != nil {
@@ -72,9 +72,9 @@ func (p *Handlers) Balance(ctx context.Context, conf *configfile.ConfigFile) {
 			}
 		}
 
-		buttons := p.CreatePaginatedHandlers(messagePaginated, _const.USDT, selector)
+		buttons := p.CreatePaginatedHandlers(messagePaginated, constant.USDT, selector)
 		selector.Inline(selector.Row(buttons...))
-		return c.Send(telegram.FormatForMD(messagePaginated[_const.USDT]), selector, telebot.ModeMarkdown)
+		return c.Send(telegram.FormatForMD(messagePaginated[constant.USDT]), selector, telebot.ModeMarkdown)
 	})
 }
 
@@ -115,9 +115,9 @@ func generateFooter(headerLen int, altCoin string, total decimal.Decimal) []stri
 	// Case of very low balance
 	if total.LessThan(decimal.NewFromFloat(0.001)) {
 		footer = append(footer, "≈0")
-	} else if altCoin == _const.USDT {
+	} else if altCoin == constant.USDT {
 		footer = append(footer, total.Round(2).String())
-	} else if altCoin == _const.BTC {
+	} else if altCoin == constant.BTC {
 		footer = append(footer, total.Round(6).String())
 	} else {
 		footer = append(footer, total.Round(4).String())

@@ -62,16 +62,6 @@ func FilterSlice[T any](slice []T, predicate Predicate[T]) []T {
 	return res
 }
 
-func FilterSliceRef[T any](slice []T, predicate Predicate[T]) []T {
-	var res []T
-	for _, t := range slice {
-		if predicate(t) {
-			res = append(res, t)
-		}
-	}
-	return res
-}
-
 func GroupByProperty[T any, K comparable](items []T, getProperty func(T) K) map[K][]T {
 	grouped := make(map[K][]T)
 

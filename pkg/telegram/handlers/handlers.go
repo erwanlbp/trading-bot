@@ -53,7 +53,7 @@ func (p *Handlers) CreatePaginatedHandlers(messagePaginated map[interface{}]stri
 		buttons = append(buttons, btn)
 	}
 
-	for i, _ := range buttons {
+	for i := range buttons {
 		b := buttons[i]
 		p.TelegramClient.CreateHandler(&b, func(c telebot.Context) error {
 			// TODO not display current inline button but loosing ref to handler ?
