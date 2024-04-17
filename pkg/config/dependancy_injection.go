@@ -39,12 +39,13 @@ type Config struct {
 	BinanceClient  *binance.Client
 	TelegramClient *telegram.Client
 
-	ProcessPriceGetter      *process.PriceGetter
-	ProcessJumpFinder       *process.JumpFinder
-	ProcessFeeGetter        *process.FeeGetter
-	ProcessCleaner          *process.Cleaner
-	TelegramHandlers        *handlers.Handlers
-	ProcessTelegramNotifier *process.TelegramNotifier
+	ProcessPriceGetter       *process.PriceGetter
+	ProcessJumpFinder        *process.JumpFinder
+	ProcessFeeGetter         *process.FeeGetter
+	ProcessCleaner           *process.Cleaner
+	TelegramHandlers         *handlers.Handlers
+	ProcessTelegramNotifier  *process.TelegramNotifier
+	ProcessSymbolBlacklister *process.SymbolBlacklister
 }
 
 var _ globalconf.GlobalConfModifier = &Config{}
@@ -71,8 +72,6 @@ func Init(ctx context.Context) *Config {
 
 	conf.Logger = log.NewZapLogger(telegram.ZapCoreWrapper(conf.TelegramClient, conf.ConfigFile))
 
-	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, cf.Binance.APIKey, cf.Binance.APIKeySecret)
-
 	dbFilePath := getDBFilePath(conf.ConfigFile.TestMode)
 	sqliteDb, err := sqlite.NewDB(conf.Logger, dbFilePath)
 	if err != nil {
@@ -81,6 +80,10 @@ func Init(ctx context.Context) *Config {
 	conf.DB = db.NewDB(sqliteDb)
 
 	conf.Repository = repository.NewRepository(conf.DB, conf.ConfigFile, conf.Logger)
+
+	conf.ProcessSymbolBlacklister = process.NewSymbolBlacklister(conf.Logger, conf.EventBus, conf.Repository)
+
+	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, conf.EventBus, conf.ProcessSymbolBlacklister)
 
 	conf.Service = service.NewService(conf.Logger, conf.Repository, conf.BinanceClient, conf.ConfigFile)
 

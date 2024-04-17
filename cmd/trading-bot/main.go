@@ -37,6 +37,9 @@ func main() {
 	logger.Debug("Starting Telegram notification process")
 	conf.ProcessTelegramNotifier.Start(ctx)
 
+	logger.Debug("Starting symbol blacklister process")
+	conf.ProcessSymbolBlacklister.Start(ctx)
+
 	logger.Debug("Creating the DB if needed")
 	if err := conf.DB.MigrateSchema(); err != nil {
 		logger.Fatal("failed to migrate DB schema", zap.Error(err))
