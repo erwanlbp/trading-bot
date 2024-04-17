@@ -9,31 +9,40 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
+	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/refresher"
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
+type SymbolBlackListGetter interface {
+	IsSymbolBlacklisted(symbol string) bool
+}
+
 type Client struct {
-	client     *binance.Client
-	Logger     *log.Logger
-	ConfigFile *configfile.ConfigFile
+	client          *binance.Client
+	Logger          *log.Logger
+	ConfigFile      *configfile.ConfigFile
+	EventBus        *eventbus.Bus
+	SymbolBlackList SymbolBlackListGetter
 
 	tradeInProgress bool
 
 	coinInfosRefresher *refresher.Refresher[map[string]binance.Symbol]
 }
 
-func NewClient(l *log.Logger, cf *configfile.ConfigFile, apiKey, apiSecret string) *Client {
+func NewClient(l *log.Logger, cf *configfile.ConfigFile, eb *eventbus.Bus, sbg SymbolBlackListGetter) *Client {
 	if cf.TestMode {
 		l.Info("Activating Binance test mode")
 		binance.UseTestnet = true
 	}
 
 	client := Client{
-		client:     binance.NewClient(apiKey, apiSecret),
-		Logger:     l,
-		ConfigFile: cf,
+		client:          binance.NewClient(cf.Binance.APIKey, cf.Binance.APIKeySecret),
+		Logger:          l,
+		ConfigFile:      cf,
+		EventBus:        eb,
+		SymbolBlackList: sbg,
 	}
 
 	client.coinInfosRefresher = refresher.NewRefresher(l, 5*time.Minute, client.RefreshSymbolInfos, refresher.OnErrorLog(client.Logger))

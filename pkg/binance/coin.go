@@ -10,6 +10,7 @@ import (
 	"github.com/adshao/go-binance/v2"
 	"github.com/shopspring/decimal"
 
+	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
@@ -25,12 +26,9 @@ type CoinPriceGroupByAlt struct {
 	Prices []CoinPrice
 }
 
-// TODO On devrait peut etre la stocker en DB ?
-var SymbolsBlackList = make(map[string]bool)
-
 func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) (map[string]CoinPrice, error) {
 
-	symbols := getSymbols(coins, altCoins)
+	symbols := getSymbols(coins, altCoins, c.SymbolBlackList)
 
 	if len(symbols) == 0 {
 		return nil, nil
@@ -66,7 +64,7 @@ func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) (m
 // Sorted by price and altcoin name
 func (c *Client) GetCoinsPriceGroupByAltCoins(ctx context.Context, coins, altCoins []string) (map[string]CoinPriceGroupByAlt, error) {
 
-	symbols := getSymbols(coins, altCoins)
+	symbols := getSymbols(coins, altCoins, c.SymbolBlackList)
 
 	if len(symbols) == 0 {
 		return nil, nil
@@ -116,14 +114,14 @@ func (c *Client) GetCoinsPriceGroupByAltCoins(ctx context.Context, coins, altCoi
 	return res, nil
 }
 
-func getSymbols(coins []string, altCoins []string) map[string]bool {
+func getSymbols(coins []string, altCoins []string, blacklist SymbolBlackListGetter) map[string]bool {
 	var symbols = make(map[string]bool)
 	for _, coin := range coins {
 		for _, altCoin := range altCoins {
 			if coin == altCoin {
 				continue
 			}
-			if symbol := util.Symbol(coin, altCoin); !SymbolsBlackList[symbol] {
+			if symbol := util.Symbol(coin, altCoin); !blacklist.IsSymbolBlacklisted(symbol) {
 				symbols[symbol] = true
 			}
 		}
@@ -171,7 +169,7 @@ func (c *Client) dichotomicPriceFetching(ctx context.Context, symbols []string) 
 		if err != nil {
 			if ErrorIs(err, BinanceErrorInvalidSymbol) {
 				c.Logger.Info(fmt.Sprintf("Found unexisting symbol '%s' on Binance, won't fetch it anymore", symbol))
-				SymbolsBlackList[symbol] = true
+				c.EventBus.Notify(eventbus.FoundUnexistingSymbol(symbol))
 				continue
 			}
 			return nil, fmt.Errorf("failed to fetch price for symbol %s: %w", symbol, err)

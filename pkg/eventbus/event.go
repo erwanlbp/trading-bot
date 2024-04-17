@@ -6,8 +6,9 @@ type Event struct {
 }
 
 const (
-	EventCoinsPricesFetched = "coins_prices_fetched"
-	SendNotification        = "send_notification"
+	EventCoinsPricesFetched    = "coins_prices_fetched"
+	EventFoundUnexistingSymbol = "found_unexisting_symbol"
+	SendNotification           = "send_notification"
 )
 
 func GenerateEvent(eventName string, payload interface{}) Event {
@@ -15,4 +16,8 @@ func GenerateEvent(eventName string, payload interface{}) Event {
 		Name:    eventName,
 		Payload: payload,
 	}
+}
+
+func FoundUnexistingSymbol(symbol string) Event {
+	return GenerateEvent(EventFoundUnexistingSymbol, symbol)
 }
