@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"strings"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
@@ -35,4 +37,10 @@ func SimpleUpsert[T schema.Tabler](tx *gorm.DB, data ...T) error {
 
 func (r *Repository) Vacuum() error {
 	return r.DB.DB.Exec("VACUUM").Error
+}
+
+func OrderBy(columns ...string) QueryFilter {
+	return func(q *gorm.DB) *gorm.DB {
+		return q.Order(strings.Join(columns, ", "))
+	}
 }

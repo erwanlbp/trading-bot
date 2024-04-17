@@ -81,24 +81,6 @@ func (r *Repository) DeleteAllCoins(tx *gorm.DB) error {
 	return tx.Exec("DELETE FROM " + model.CoinTableName).Error
 }
 
-func (r *Repository) GetCoinsLastPrice(altCoin string) ([]model.CoinPrice, error) {
-
-	lastTimestampQuery := r.DB.Select("MAX(timestamp)").Table(model.CoinPriceTableName)
-	if altCoin != "" {
-		lastTimestampQuery = lastTimestampQuery.Where("alt_coin = ?", altCoin)
-
-	}
-
-	var res []model.CoinPrice
-	query := r.DB.Where("timestamp = (?)", lastTimestampQuery)
-	if altCoin != "" {
-		query = query.Where("alt_coin = ?", altCoin)
-	}
-
-	err := query.Find(&res).Error
-	return res, err
-}
-
 func (r *Repository) CleanCoinPriceHistory() (inserted int64, deleted int64, err error) {
 	if err := r.DB.Transaction(func(tx *gorm.DB) error {
 		resInsert := r.DB.DB.Exec(`

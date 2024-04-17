@@ -66,10 +66,14 @@ func main() {
 	if ok, _ := strconv.ParseBool(os.Getenv("NO_JUMP")); !ok {
 		logger.Debug("Starting jump finder process")
 		conf.ProcessJumpFinder.Start(ctx)
+	} else {
+		logger.Warn("Will not start jump finder process")
 	}
 
-	logger.Debug("Starting coins price getter process")
-	conf.ProcessPriceGetter.Start(ctx)
+	if ok, _ := strconv.ParseBool(os.Getenv("NO_PRICE_GETTER")); !ok {
+		logger.Debug("Starting coins price getter process")
+		conf.ProcessPriceGetter.Start(ctx)
+	}
 
 	logger.Debug("Starting cleaner process")
 	conf.ProcessCleaner.Start(ctx)

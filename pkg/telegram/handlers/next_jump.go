@@ -26,7 +26,7 @@ func (p *Handlers) NextJump(ctx context.Context, conf *configfile.ConfigFile) {
 
 		chunks := util.Chunk(diff, conf.Telegram.Handlers.NbDiffDisplayed)
 
-		messagePaginated := map[int]string{}
+		messagePaginated := map[interface{}]string{}
 		for i, chunk := range chunks {
 			diffDisplayed := fmt.Sprintf("Diff at : %s \n\n", diff[0].Timestamp.Format(time.DateTime))
 			for _, d := range chunk {
@@ -35,7 +35,7 @@ func (p *Handlers) NextJump(ctx context.Context, conf *configfile.ConfigFile) {
 			messagePaginated[i] = diffDisplayed
 		}
 
-		buttons := p.CreatePaginatedHandlers(messagePaginated, selector)
+		buttons := p.CreatePaginatedHandlers(messagePaginated, nil, selector)
 		selector.Inline(selector.Row(buttons...))
 		return c.Send(messagePaginated[0], selector)
 	})

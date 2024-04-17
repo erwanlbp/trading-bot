@@ -2,9 +2,8 @@ package handlers
 
 import (
 	"context"
-	"strconv"
+	"fmt"
 
-	"go.uber.org/zap"
 	"gopkg.in/telebot.v3"
 
 	"github.com/erwanlbp/trading-bot/pkg/binance"
@@ -39,23 +38,36 @@ func (p *Handlers) InitHandlers(ctx context.Context) {
 	p.InitMenu(ctx, p.Conf)
 }
 
-func (p *Handlers) CreatePaginatedHandlers(messagePaginated map[int]string, selector *telebot.ReplyMarkup) []telebot.Btn {
-	buttons := make([]telebot.Btn, len(messagePaginated))
+func (p *Handlers) CreatePaginatedHandlers(messagePaginated map[interface{}]string, defaultValue interface{}, selector *telebot.ReplyMarkup) []telebot.Btn {
+	if len(messagePaginated) < 2 {
+		return []telebot.Btn{}
+	}
+
+	var buttons []telebot.Btn
 	for i := range messagePaginated {
 		btn := telebot.Btn{
-			Unique: strconv.Itoa(i),
-			Text:   strconv.Itoa(i),
-			Data:   strconv.Itoa(i),
+			Unique: fmt.Sprint(i),
+			Text:   "Show " + fmt.Sprint(i) + " value",
+			Data:   fmt.Sprint(i),
 		}
-		buttons[i] = btn
-		p.TelegramClient.CreateHandler(&btn, func(c telebot.Context) error {
-			index, err := strconv.Atoi(btn.Data)
-			if err != nil {
-				p.Logger.Error("Error while getting index of page to display diff : ", zap.Error(err))
-				return c.Edit(messagePaginated[0], selector)
-			}
-			return c.Edit(messagePaginated[index], selector)
+		buttons = append(buttons, btn)
+	}
+
+	for i := range buttons {
+		b := buttons[i]
+		p.TelegramClient.CreateHandler(&b, func(c telebot.Context) error {
+			// TODO not display current inline button but loosing ref to handler ?
+			//selector := &telebot.ReplyMarkup{}
+			//buttonsWithoutCurrent := util.FilterSlice(buttons, func(btn telebot.Btn) bool {
+			//	return btn.Unique != defaultValue
+			//})
+			//selector.Inline(selector.Row(buttonsWithoutCurrent...))
+			return c.Edit(telegram.FormatForMD(messagePaginated[b.Unique]), selector, telebot.ModeMarkdown)
 		})
 	}
+
+	//buttonsWithoutDefault := util.FilterSlice(buttons, func(btn telebot.Btn) bool {
+	//	return btn.Unique != defaultValue
+	//})
 	return buttons
 }

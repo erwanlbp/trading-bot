@@ -39,7 +39,7 @@ telegram:
   token: <bot token>
   channel_id: <channel id>
   handlers :
-    nb_balances_displayed: 10
+    nb_balances_displayed: 20
     nb_diff_displayed: 20
 
 # Level of notification sent to telegram

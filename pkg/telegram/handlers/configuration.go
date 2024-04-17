@@ -12,6 +12,7 @@ import (
 
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 	"github.com/erwanlbp/trading-bot/pkg/model"
+	"github.com/erwanlbp/trading-bot/pkg/telegram"
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
@@ -78,6 +79,7 @@ func (p *Handlers) ListCoins(c telebot.Context) error {
 
 	coinsStr := util.ToASCIITable(coins,
 		[]string{"Coin", "Enabled", "Since"},
+		nil,
 		func(c model.Coin) []string {
 			var e int
 			if c.Enabled {
@@ -129,5 +131,5 @@ func PrepareConfContentForMessage(conf configfile.ConfigFile) string {
 	conf.RemoveSecrets()
 
 	confContent := util.ToYAML(conf)
-	return "```\n" + confContent + "\n```"
+	return telegram.FormatForMD(confContent)
 }
