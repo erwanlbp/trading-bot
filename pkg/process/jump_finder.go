@@ -402,8 +402,10 @@ func (p *JumpFinder) UpdatePairsToCoinRatios(ctx context.Context, pair model.Pai
 		if pair.FromCoin == pa.FromCoin && pair.ToCoin == pa.ToCoin {
 			pa.LastJump = buy.Time()
 			pa.LastJumpRatio = sell.Price().Div(buy.Price())
+			pa.LastJumpRatioBasedOn = pa.LastJump
 		} else {
 			pa.LastJumpRatio = prices[util.Symbol(pa.FromCoin, p.ConfigFile.Bridge)].Price.Div(buy.Price())
+			pa.LastJumpRatioBasedOn = buy.Time()
 		}
 		pairsToSave = append(pairsToSave, pa)
 	}

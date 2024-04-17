@@ -57,11 +57,15 @@ func (p *PriceGetter) Start(ctx context.Context) {
 func (p *PriceGetter) FetchCoinsPrices(ctx context.Context) {
 	logger := p.Logger.With(zap.String("process", "fetch_price"))
 
-	// TODO Should we get all coins, not just enabled, so that we could run the algorithm on more than just enabled coins to "propose" some new coins
-	coins, err := p.Repository.GetEnabledCoins()
+	coinModels, err := p.Repository.GetAllCoins()
 	if err != nil {
 		logger.Error("Failed to fetch enabled coins, stopping there", zap.Error(err))
 		return
+	}
+
+	var coins []string
+	for _, coin := range coinModels {
+		coins = append(coins, coin.Coin)
 	}
 
 	prices, err := p.BinanceClient.GetCoinsPrice(ctx, coins, p.AltCoins)

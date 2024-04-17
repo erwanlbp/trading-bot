@@ -16,8 +16,9 @@ type Pair struct {
 	ToCoin   string
 	Exists   bool
 
-	LastJump      time.Time
-	LastJumpRatio decimal.Decimal
+	LastJump             time.Time
+	LastJumpRatio        decimal.Decimal
+	LastJumpRatioBasedOn time.Time
 
 	FromCoinDetail Coin `gorm:"foreignKey:FromCoin"`
 	ToCoinDetail   Coin `gorm:"foreignKey:ToCoin"`

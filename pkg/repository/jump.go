@@ -4,9 +4,16 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/model"
 )
 
-func (r *Repository) GetJumps(number int) ([]model.Jump, error) {
+func (r *Repository) GetJumps(filters ...QueryFilter) ([]model.Jump, error) {
 	var res []model.Jump
-	err := r.DB.Order("timestamp desc").Limit(number).Find(&res).Error
+
+	req := r.DB.DB
+
+	for _, f := range filters {
+		req = f(req)
+	}
+
+	err := req.Find(&res).Error
 	if err != nil {
 		return res, err
 	}
