@@ -38,7 +38,7 @@ func (p *Handlers) ExportDB(c telebot.Context) error {
 
 	file := &telebot.Document{
 		File:     telebot.FromReader(copiedFilepath),
-		FileName: fmt.Sprintf("db_%s", time.Now().Format(time.DateOnly)),
+		FileName: fmt.Sprintf("db_%s.db", time.Now().Format(time.DateOnly)),
 	}
 
 	return c.Send(file, mainMenu)
