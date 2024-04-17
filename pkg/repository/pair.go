@@ -58,3 +58,9 @@ func ToCoin(coin string) QueryFilter {
 		return q.Where("to_coin = ?", coin)
 	}
 }
+
+func (r *Repository) CleanOldPairHistory() (int64, error) {
+	date := time.Now().UTC().Add(-1 * time.Hour)
+	res := r.DB.DB.Where("timestamp < ?", date).Delete(&model.PairHistory{})
+	return res.RowsAffected, res.Error
+}

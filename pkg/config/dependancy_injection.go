@@ -1,8 +1,10 @@
 package config
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"go.uber.org/zap"
@@ -40,6 +42,7 @@ type Config struct {
 	ProcessPriceGetter      *process.PriceGetter
 	ProcessJumpFinder       *process.JumpFinder
 	ProcessFeeGetter        *process.FeeGetter
+	ProcessCleaner          *process.Cleaner
 	TelegramHandlers        *handlers.Handlers
 	ProcessTelegramNotifier *process.TelegramNotifier
 }
@@ -70,15 +73,8 @@ func Init(ctx context.Context) *Config {
 
 	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, cf.Binance.APIKey, cf.Binance.APIKeySecret)
 
-	dbFolderName := "data"
-	dbFileName := "trading_bot"
-	if conf.ConfigFile.TestMode {
-		dbFileName = "test_trading_bot"
-	}
-	if rootPath, ok := os.LookupEnv("ROOT_PATH"); ok {
-		dbFolderName = rootPath + dbFolderName
-	}
-	sqliteDb, err := sqlite.NewDB(conf.Logger, dbFolderName, dbFileName)
+	dbFilePath := getDBFilePath(conf.ConfigFile.TestMode)
+	sqliteDb, err := sqlite.NewDB(conf.Logger, dbFilePath)
 	if err != nil {
 		conf.Logger.Fatal("Failed to initialize DB", zap.Error(err))
 	}
@@ -91,10 +87,22 @@ func Init(ctx context.Context) *Config {
 	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, constant.AltCoins)
 	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, conf.ConfigFile, conf.BinanceClient)
 	conf.ProcessFeeGetter = process.NewFeeGetter(conf.Logger, conf.BinanceClient)
+	conf.ProcessCleaner = process.NewCleaner(conf.Logger, conf.Repository, &conf)
 	conf.ProcessTelegramNotifier = process.NewTelegramNotifier(conf.Logger, conf.EventBus, conf.TelegramClient)
 	conf.TelegramHandlers = handlers.NewHandlers(conf.Logger, conf.ConfigFile, conf.TelegramClient, conf.BinanceClient, conf.Repository, &conf)
 
 	return &conf
+}
+
+func getDBFilePath(testMode bool) string {
+	filepath := "data/trading_bot.db"
+	if testMode {
+		filepath = "data/test_trading_bot.db"
+	}
+	if rootPath, ok := os.LookupEnv("ROOT_PATH"); ok {
+		filepath = rootPath + filepath
+	}
+	return filepath
 }
 
 // Re-parse config file, reload enabled coins and stuff. Then replace the ConfigFile in the conf by the new one.
@@ -126,4 +134,26 @@ func (c *Config) ReloadConfigFile(ctx context.Context) error {
 	*c.ConfigFile = newConfig
 
 	return nil
+}
+
+func (c *Config) ExportDBFile() (io.Reader, error) {
+	if err := c.Repository.Vacuum(); err != nil {
+		return nil, fmt.Errorf("failed to vacuum before export: %w", err)
+	}
+
+	content, err := os.ReadFile(getDBFilePath(c.ConfigFile.TestMode))
+	if err != nil {
+		return nil, err
+	}
+
+	b := bytes.NewBuffer(content)
+	return b, nil
+}
+
+func (c *Config) GetDBSize() (int64, error) {
+	stat, err := os.Stat(getDBFilePath(c.ConfigFile.TestMode))
+	if err != nil {
+		return 0, err
+	}
+	return stat.Size(), nil
 }

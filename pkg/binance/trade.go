@@ -118,8 +118,14 @@ func (c *Client) WaitForOrderCompletion(ctx context.Context, symbol string, orde
 	for {
 		select {
 		case <-ctx.Done():
-			c.Logger.Debug(fmt.Sprintf("Stopped waiting for order '%d' completion", orderId), zap.String("last_status", string(orderLastStatus.Status)))
-			return OrderResult{Order: orderLastStatus}, fmt.Errorf("context canceled")
+			c.Logger.Debug(fmt.Sprintf("Context is done while waiting for order completion, canceling order '%d'", orderId), zap.String("last_status", string(orderLastStatus.Status)))
+
+			cancelStatus, err := c.client.NewCancelOrderService().Symbol(symbol).OrderID(orderId).Do(ctx)
+			if err != nil {
+				c.Logger.Error("Failed to cancel order", zap.Error(err))
+				return OrderResult{Order: orderLastStatus, Cancel: cancelStatus}, err
+			}
+			return OrderResult{Order: orderLastStatus, Cancel: cancelStatus}, fmt.Errorf("context canceled")
 		case <-timeoutCtx.Done():
 			c.Logger.Error("Reached timeout while waiting for order completion, canceling it", zap.String("last_status", string(orderLastStatus.Status)))
 			cancelStatus, err := c.client.NewCancelOrderService().Symbol(symbol).OrderID(orderId).Do(ctx)

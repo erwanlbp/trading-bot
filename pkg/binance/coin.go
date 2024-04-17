@@ -40,7 +40,7 @@ func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) (m
 	if err != nil {
 		return nil, err
 	}
-	now := time.Now()
+	now := time.Now().UTC()
 
 	var res = make(map[string]CoinPrice)
 	for _, price := range prices {
@@ -76,7 +76,7 @@ func (c *Client) GetCoinsPriceGroupByAltCoins(ctx context.Context, coins, altCoi
 	if err != nil {
 		return nil, err
 	}
-	now := time.Now()
+	now := time.Now().UTC()
 
 	var res = make(map[string]CoinPriceGroupByAlt)
 

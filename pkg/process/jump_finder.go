@@ -133,7 +133,7 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 		computedDiff = append(computedDiff, model.Diff{
 			FromCoin:  pairRatio.Pair.FromCoin,
 			ToCoin:    pairRatio.Pair.ToCoin,
-			Timestamp: time.Now(),
+			Timestamp: time.Now().UTC(),
 			Diff:      diff,
 		})
 
