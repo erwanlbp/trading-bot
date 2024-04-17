@@ -15,7 +15,7 @@ import (
 )
 
 func NewDB(logger *log.Logger, dbFilePath string) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("file:%s?auto_vacuum=FULL", dbFilePath)
+	dsn := fmt.Sprintf("file:%s", dbFilePath)
 	theDatabase, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{
 		Logger: zapgorm2.Logger{
 			ZapLogger:                 logger.Logger,
