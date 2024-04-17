@@ -71,6 +71,9 @@ func main() {
 	logger.Debug("Starting coins price getter process")
 	conf.ProcessPriceGetter.Start(ctx)
 
+	logger.Debug("Starting cleaner process")
+	conf.ProcessCleaner.Start(ctx)
+
 	conf.BinanceClient.LogBalances(ctx)
 	conf.Repository.LogCurrentCoin()
 

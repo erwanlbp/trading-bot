@@ -98,3 +98,27 @@ func (r *Repository) GetCoinsLastPrice(altCoin string) ([]model.CoinPrice, error
 	err := query.Find(&res).Error
 	return res, err
 }
+
+func (r *Repository) CleanCoinPriceHistory() (inserted int64, deleted int64, err error) {
+	if err := r.DB.Transaction(func(tx *gorm.DB) error {
+		resInsert := r.DB.DB.Exec(`
+		INSERT OR REPLACE INTO ` + model.CoinPriceTableName + ` (coin, alt_coin, timestamp, price, averaged)
+		SELECT coin, alt_coin, strftime('%Y-%m-%d %H:00:00',timestamp) AS "timestamp" , avg(price) AS price , 1 FROM ` + model.CoinPriceTableName + ` cph WHERE (cph.averaged IS NULL OR cph.averaged = 0) AND timestamp < strftime('%Y-%m-%d 00:00:00','now')
+		GROUP BY 1,2,3`)
+		if resInsert.Error != nil {
+			return fmt.Errorf("failed to insert aggregated data: %w", err)
+		}
+		inserted = resInsert.RowsAffected
+
+		resDelete := r.DB.DB.Exec(`DELETE FROM ` + model.CoinPriceTableName + ` WHERE (averaged IS NULL OR averaged = 0) AND timestamp < strftime('%Y-%m-%d 00:00:00','now')`)
+		if resDelete.Error != nil {
+			return fmt.Errorf("failed to delete old data after aggregation: %w", err)
+		}
+		deleted = resDelete.RowsAffected
+
+		return nil
+	}); err != nil {
+		return 0, 0, err
+	}
+	return
+}

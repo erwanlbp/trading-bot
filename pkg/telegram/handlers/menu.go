@@ -26,6 +26,7 @@ var (
 	btnReloadConfig   = configurationMenu.Text("♻️ Reload config.yaml")
 	btnShowConfigFile = configurationMenu.Text("👀 Show config.yaml")
 	btnShowLiveConfig = configurationMenu.Text("🔥 Show live config")
+	btnExportDB       = configurationMenu.Text("📬 Export DB")
 )
 
 func (p *Handlers) InitMenu(ctx context.Context, conf *configfile.ConfigFile) {
@@ -34,6 +35,7 @@ func (p *Handlers) InitMenu(ctx context.Context, conf *configfile.ConfigFile) {
 	p.NextJump(ctx, conf)
 	p.Configuration(ctx)
 	p.TelegramClient.CreateHandler(&btnBackToMainMenu, p.BackToMainMenu)
+	p.TelegramClient.CreateHandler(&btnExportDB, p.ExportDB)
 
 	// Setup menus
 	mainMenu.Reply(
@@ -43,7 +45,7 @@ func (p *Handlers) InitMenu(ctx context.Context, conf *configfile.ConfigFile) {
 	configurationMenu.Reply(
 		configurationMenu.Row(btnListCoins, btnEditCoins, btnNotification),
 		configurationMenu.Row(btnShowLiveConfig, btnShowConfigFile, btnReloadConfig),
-		configurationMenu.Row(btnBackToMainMenu),
+		configurationMenu.Row(btnExportDB, btnBackToMainMenu),
 	)
 	notificationMenu.Reply(
 		notificationMenu.Row(btnDebug, btnInfo, btnWarn, btnError),

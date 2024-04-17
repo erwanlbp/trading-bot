@@ -40,7 +40,7 @@ func New(zapLogger *zap.Logger) Logger {
 	}
 }
 
-func (l Logger) SetAsDefault() {
+func (l *Logger) SetAsDefault() {
 	gormlogger.Default = l
 }
 
@@ -59,7 +59,7 @@ func (l Logger) Info(ctx context.Context, str string, args ...interface{}) {
 	if l.LogLevel < gormlogger.Info {
 		return
 	}
-	l.logger(ctx).Sugar().Debugf(str, args...)
+	l.logger(ctx).Sugar().Infof(str, args...)
 }
 
 func (l Logger) Warn(ctx context.Context, str string, args ...interface{}) {

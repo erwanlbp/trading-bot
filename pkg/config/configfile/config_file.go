@@ -65,7 +65,7 @@ func (j Jump) GetNeededGain(lastJump time.Time) decimal.Decimal {
 		lastJump = j.DefaultLastJump
 	}
 
-	t := time.Now()
+	t := time.Now().UTC()
 	for {
 		t = t.Add(-j.After)
 		if lastJump.Before(t) {
@@ -136,7 +136,7 @@ func ParseConfigFile() (ConfigFile, error) {
 	// yamled, _ := yaml.Marshal(res)
 	// fmt.Print(string(yamled))
 
-	res.Jump.DefaultLastJump = time.Now()
+	res.Jump.DefaultLastJump = time.Now().UTC()
 
 	return res, nil
 }

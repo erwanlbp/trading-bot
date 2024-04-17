@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"gopkg.in/telebot.v3"
 
@@ -26,6 +27,20 @@ func (p *Handlers) Configuration(ctx context.Context) {
 	p.TelegramClient.CreateHandler(&btnConfiguration, func(c telebot.Context) error {
 		return c.Send("What do you want to do ?", configurationMenu)
 	})
+}
+
+func (p *Handlers) ExportDB(c telebot.Context) error {
+	copiedFilepath, err := p.GlobalConf.ExportDBFile()
+	if err != nil {
+		return c.Send("Failed to export DB: " + err.Error())
+	}
+
+	file := &telebot.Document{
+		File:     telebot.FromReader(copiedFilepath),
+		FileName: fmt.Sprintf("db_%s", time.Now().Format(time.DateOnly)),
+	}
+
+	return c.Send(file, mainMenu)
 }
 
 func (p *Handlers) ShowConfigFile(c telebot.Context) error {

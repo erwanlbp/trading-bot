@@ -24,7 +24,7 @@ func LoadCoins(enabledCoins []string, logger *log.Logger, repo *repository.Repos
 	existingCoinsMap := util.AsMap(existingCoins, model.CoinIDMapper())
 
 	// All coins in the supported coins file are enabled
-	now := time.Now()
+	now := time.Now().UTC()
 	for _, coin := range enabledCoins {
 		existingCoin, alreadyCreated := existingCoinsMap[coin]
 		if !alreadyCreated {

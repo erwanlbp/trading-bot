@@ -32,3 +32,7 @@ func SimpleUpsert[T schema.Tabler](tx *gorm.DB, data ...T) error {
 	}
 	return tx.Clauses(clause.OnConflict{UpdateAll: true}).Create(data).Error
 }
+
+func (r *Repository) Vacuum() error {
+	return r.DB.DB.Exec("VACUUM").Error
+}

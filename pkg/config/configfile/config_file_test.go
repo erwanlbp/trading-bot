@@ -26,7 +26,7 @@ func TestGetNeededGain(t *testing.T) {
 				DecreaseBy:      decimal.NewFromFloat(0.5),
 				After:           1 * time.Minute,
 				Min:             decimal.NewFromFloat(0.1),
-				DefaultLastJump: time.Now().Add(-65 * time.Second),
+				DefaultLastJump: time.Now().UTC().Add(-65 * time.Second),
 			},
 			expected: decimal.NewFromFloat(0.005),
 		},
@@ -38,7 +38,7 @@ func TestGetNeededGain(t *testing.T) {
 				After:      1 * time.Minute,
 				Min:        decimal.NewFromFloat(0.1),
 			},
-			lastJump: time.Now().Add(-1 * time.Second),
+			lastJump: time.Now().UTC().Add(-1 * time.Second),
 			expected: decimal.NewFromFloat(0.01),
 		},
 		{
@@ -49,7 +49,7 @@ func TestGetNeededGain(t *testing.T) {
 				After:      2 * time.Minute,
 				Min:        decimal.NewFromFloat(0.1),
 			},
-			lastJump: time.Now().Add(-3 * time.Minute),
+			lastJump: time.Now().UTC().Add(-3 * time.Minute),
 			expected: decimal.NewFromFloat(0.007),
 		},
 		{
@@ -60,7 +60,7 @@ func TestGetNeededGain(t *testing.T) {
 				After:      2 * time.Minute,
 				Min:        decimal.NewFromFloat(0.1),
 			},
-			lastJump: time.Now().Add(-5 * time.Minute),
+			lastJump: time.Now().UTC().Add(-5 * time.Minute),
 			expected: decimal.NewFromFloat(0.006),
 		},
 		{
@@ -71,7 +71,7 @@ func TestGetNeededGain(t *testing.T) {
 				After:      2 * time.Minute,
 				Min:        decimal.NewFromFloat(0.1),
 			},
-			lastJump: time.Now().Add(-1 * time.Hour),
+			lastJump: time.Now().UTC().Add(-1 * time.Hour),
 			expected: decimal.NewFromFloat(0.001),
 		},
 		{
@@ -82,7 +82,7 @@ func TestGetNeededGain(t *testing.T) {
 				After:      2 * time.Minute,
 				Min:        decimal.NewFromFloat(1),
 			},
-			lastJump: time.Now().Add(-1 * time.Hour),
+			lastJump: time.Now().UTC().Add(-1 * time.Hour),
 			expected: decimal.NewFromFloat(0.01),
 		},
 	} {

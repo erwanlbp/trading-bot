@@ -13,6 +13,7 @@ type CoinPrice struct {
 	AltCoin   string    `gorm:"primaryKey"`
 	Timestamp time.Time `gorm:"primaryKey"`
 	Price     decimal.Decimal
+	Averaged  bool
 
 	CoinRef Coin `gorm:"foreignKey:Coin;references:Coin"`
 }
