@@ -36,6 +36,7 @@ type PairHistory struct {
 	PairID    uint      `gorm:"primaryKey"`
 	Timestamp time.Time `gorm:"primaryKey"`
 	Ratio     decimal.Decimal
+	Averaged  bool
 
 	Pair Pair `gorm:"foreignKey:PairID;references:ID"`
 }

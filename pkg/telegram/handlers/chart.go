@@ -6,13 +6,14 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/telebot.v3"
-
 	"github.com/shopspring/decimal"
 	"github.com/wcharczuk/go-chart/v2"
+	"go.uber.org/zap"
+	"gopkg.in/telebot.v3"
 
 	"github.com/erwanlbp/trading-bot/pkg/model"
 	"github.com/erwanlbp/trading-bot/pkg/repository"
+	"github.com/erwanlbp/trading-bot/pkg/telegram"
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
@@ -22,25 +23,37 @@ func (p *Handlers) ChartMenu(c telebot.Context) error {
 		return c.Send("Failed to get available charts: " + err.Error())
 	}
 
-	if len(charts) == 0 {
-		charts = []model.Chart{
-			model.DefaultCoinPriceChartAllCoin7Day,
-		}
+	// Default all coins charts
+	allCharts := []model.Chart{
+		model.DefaultCoinPriceChartAllCoin30Day,
+		model.DefaultCoinPriceChartAllCoin7Day,
+		model.DefaultCoinPriceChartAllCoin3Day,
+		model.DefaultCoinPriceChartAllCoin1Day,
 	}
 
-	var btns telebot.Row
+	// Default best diff with current coin charts
+	bestDiffDefaultCharts, err := p.Repository.GetDefaultChartsWithBestDiff()
+	if err != nil {
+		p.Logger.Warn("Failed to get best diff for charts, will suggest this graph", zap.Error(err))
+	} else {
+		allCharts = append(allCharts, bestDiffDefaultCharts...)
+	}
 
-	for _, chart := range charts {
+	// User charts
+	allCharts = append(allCharts, charts...)
+
+	var btns telebot.Row
+	for _, chart := range allCharts {
 		btn := chartMenu.Text(chart.Config)
-		p.TelegramClient.CreateHandler(&btn, p.GenerateCoinPriceChart)
+		p.TelegramClient.CreateHandler(&btn, p.GenerateChart)
 		btns = append(btns, btn)
 	}
 	btns = append(btns,
-		btnNewChart,
+		// btnNewChart, // Disabling for now because it's not very useful and well documented
 		btnBackToMainMenu,
 	)
 
-	response := &telebot.ReplyMarkup{ResizeKeyboard: true}
+	response := &telebot.ReplyMarkup{ResizeKeyboard: true, OneTimeKeyboard: true}
 
 	var rows []telebot.Row
 
@@ -50,25 +63,72 @@ func (p *Handlers) ChartMenu(c telebot.Context) error {
 
 	response.Reply(rows...)
 
-	return c.Send("Saved charts:", response)
-}
-
-func (p *Handlers) GenerateCoinPriceChart(c telebot.Context) error {
-
-	parts := strings.Split(c.Text(), " ")
-	if len(parts) != 2 {
-		return c.Send("Malformed text, should be 'coin1,coin2,coin3 duration_in_day'", chartMenu)
+	var message []string = []string{
+		"Choose a chart in menu or type a command like ⬇️",
+		telegram.FormatForMD("/chart COIN1/COIN2 3"),
+		telegram.FormatForMD("/chart COIN1,COIN2,COIN3 1"),
 	}
 
-	coins := strings.Split(parts[0], ",")
+	return c.Send(strings.Join(message, "\n"), telebot.ModeMarkdown, response)
+}
+
+type ChartPoint struct {
+	Serie     string
+	Timestamp time.Time
+	Value     decimal.Decimal
+}
+
+func (p *Handlers) GenerateChart(c telebot.Context) error {
+
+	var parts []string
+	if len(c.Args()) == 0 {
+		parts = strings.Split(c.Text(), " ")
+	} else {
+		parts = c.Args()
+	}
+	if len(parts) != 2 {
+		return c.Send("Malformed text, should be 'coin1,coin2,coin3 duration_in_day' or 'coin1/coin2 duration_in_day'", chartMenu)
+	}
+
 	days, err := strconv.Atoi(parts[1])
 	if err != nil || days <= 0 {
 		return c.Send("Malformed duration, should be an int > 0", chartMenu)
 	}
 
-	data, err := p.Repository.GetCoinPricesSince(coins, "USDT", time.Now().Add(time.Duration(-1*days)*util.Day))
-	if err != nil {
-		return c.Send(err.Error())
+	var chartType string
+	var data []ChartPoint
+	var thresholdLine decimal.Decimal
+
+	if strings.Contains(parts[0], "/") {
+		chartType = "Pair"
+		pairCoins := strings.Split(parts[0], "/")
+		symbol := util.LogSymbol(pairCoins[0], pairCoins[1])
+
+		pairs, err := p.Repository.GetPairs(repository.Pair(pairCoins[0], pairCoins[1]))
+		if err != nil {
+			return c.Send("Failed to get the pair, try again later: "+err.Error(), chartMenu)
+		}
+		pair := pairs[util.Symbol(pairCoins[0], pairCoins[1])]
+		thresholdLine = pair.LastJumpRatio
+
+		pairData, err := p.Repository.GetPairRatiosSince(pairCoins[0], pairCoins[1], time.Now().Add(time.Duration(-1*days)*util.Day))
+		if err != nil {
+			return c.Send(err.Error())
+		}
+		for _, pd := range pairData {
+			data = append(data, ChartPoint{Serie: symbol, Timestamp: pd.Timestamp, Value: pd.Ratio})
+		}
+	} else {
+		chartType = "Coins prices"
+		coins := strings.Split(parts[0], ",")
+
+		priceData, err := p.Repository.GetCoinPricesSince(coins, "USDT", time.Now().Add(time.Duration(-1*days)*util.Day))
+		if err != nil {
+			return c.Send(err.Error())
+		}
+		for _, pd := range priceData {
+			data = append(data, ChartPoint{Serie: util.LogSymbol(pd.Coin, pd.AltCoin), Timestamp: pd.Timestamp, Value: pd.Price})
+		}
 	}
 
 	if len(data) == 0 {
@@ -79,41 +139,56 @@ func (p *Handlers) GenerateCoinPriceChart(c telebot.Context) error {
 	var maxValue map[string]decimal.Decimal = make(map[string]decimal.Decimal)
 
 	for _, d := range data {
-		symbol := util.LogSymbol(d.Coin, d.AltCoin)
-		if min, ok := minValue[symbol]; !ok || d.Price.LessThan(min) {
-			minValue[symbol] = d.Price
+		if min, ok := minValue[d.Serie]; !ok || d.Value.LessThan(min) {
+			minValue[d.Serie] = d.Value
 		}
-		if max, ok := maxValue[symbol]; !ok || d.Price.GreaterThan(max) {
-			maxValue[symbol] = d.Price
+		if max, ok := maxValue[d.Serie]; !ok || d.Value.GreaterThan(max) {
+			maxValue[d.Serie] = d.Value
 		}
 	}
 
-	for i, d := range data {
-		symbol := util.LogSymbol(d.Coin, d.AltCoin)
-		d.Price = d.Price.Sub(minValue[symbol]).Div(maxValue[symbol].Sub(minValue[symbol])).Mul(decimal.NewFromInt(100))
-		data[i] = d
+	// If there are more than 1 serie, we show values as percentage [0,100]
+	if len(minValue) > 1 {
+		for i, d := range data {
+			d.Value = d.Value.Sub(minValue[d.Serie]).Div(maxValue[d.Serie].Sub(minValue[d.Serie])).Mul(decimal.NewFromInt(100))
+			data[i] = d
+		}
 	}
 
 	var series map[string]chart.ContinuousSeries = make(map[string]chart.ContinuousSeries)
-
+	var minX, maxX float64
 	for _, point := range data {
-		symbol := util.LogSymbol(point.Coin, point.AltCoin)
-		serie, ok := series[symbol]
+		serie, ok := series[point.Serie]
 		if !ok {
-			serie = chart.ContinuousSeries{Name: symbol, XValueFormatter: chart.TimeDateValueFormatter}
+			serie = chart.ContinuousSeries{Name: point.Serie, XValueFormatter: chart.TimeDateValueFormatter}
 		}
-		serie.XValues = append(serie.XValues, float64(point.Timestamp.UnixNano()))
-		serie.YValues = append(serie.YValues, point.Price.InexactFloat64())
-		series[symbol] = serie
+		x := float64(point.Timestamp.UnixNano())
+		serie.XValues = append(serie.XValues, x)
+		serie.YValues = append(serie.YValues, point.Value.InexactFloat64())
+		series[point.Serie] = serie
+
+		if minX == 0 || x < minX {
+			minX = x
+		}
+		if maxX == 0 || x > maxX {
+			maxX = x
+		}
 	}
 
 	var finalSeries []chart.Series
 	for _, serie := range series {
 		finalSeries = append(finalSeries, serie)
 	}
+	if !thresholdLine.IsZero() {
+		// Maybe you'll need to normalize the value if there are multiple series
+		// if len(minValue )> 1 {
+		// thresholdLine = thresholdLine.Sub(minValue[d.Serie]).Div(maxValue[d.Serie].Sub(minValue[d.Serie])).Mul(decimal.NewFromInt(100))
+		// }
+		finalSeries = append(finalSeries, &chart.LinearSeries{Name: "Threshold", XValues: []float64{minX, maxX}, InnerSeries: chart.LinearCoefficients(0, thresholdLine.InexactFloat64())})
+	}
 
 	graph := chart.Chart{
-		Title:  c.Text(),
+		Title:  chartType + " " + strings.Join(parts, " "),
 		Series: finalSeries,
 	}
 	graph.Elements = []chart.Renderable{chart.LegendThin(&graph)}

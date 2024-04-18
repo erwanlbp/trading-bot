@@ -3,26 +3,22 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"sort"
 	"time"
 
 	"gopkg.in/telebot.v3"
 
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
+	"github.com/erwanlbp/trading-bot/pkg/repository"
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
 func (p *Handlers) NextJump(ctx context.Context, conf *configfile.ConfigFile) {
 	p.TelegramClient.CreateHandler(&btnNextJump, func(c telebot.Context) error {
 		selector := &telebot.ReplyMarkup{}
-		diff, err := p.Repository.GetDiff()
+		diff, err := p.Repository.GetDiff(repository.OrderBy("diff desc"))
 		if err != nil {
 			return c.Send("Error while get next jump info, please retry")
 		}
-
-		sort.Slice(diff, func(i, j int) bool {
-			return diff[i].Diff.GreaterThan(diff[j].Diff)
-		})
 
 		chunks := util.Chunk(diff, conf.Telegram.Handlers.NbDiffDisplayed)
 

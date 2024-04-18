@@ -35,7 +35,7 @@ func (p *Cleaner) Start(ctx context.Context) {
 		var ids []string
 
 		ids = append(ids,
-			Scheduler.Every().Minute(30).Second(0).Do(p.CleanPairHistory),
+			Scheduler.Every().Hour(6).Minute(15).Second(0).Do(p.CleanPairHistory),
 			Scheduler.Every().Hour(6).Minute(0).Second(0).Do(p.CleanCoinPrice),
 			Scheduler.Every().Hour(10).Minute(0).Second(0).Do(p.VacuumDB),
 		)
@@ -52,16 +52,16 @@ func (p *Cleaner) Start(ctx context.Context) {
 }
 
 func (p *Cleaner) CleanPairHistory() {
-	if rows, err := p.Repository.CleanOldPairHistory(); err != nil {
-		p.Logger.Warn("Failed to clean old pair history, if you this multiple times per day, there's something wrong", zap.Error(err))
+	if inserted, deleted, err := p.Repository.CleanOldPairHistory(); err != nil {
+		p.Logger.Warn("Failed to clean pair history, if you this multiple days in a row, there's something wrong", zap.Error(err))
 	} else {
-		p.Logger.Debug(fmt.Sprintf("Deleted %d old pair history rows", rows), zap.String("process", "cleaner"))
+		p.Logger.Debug(fmt.Sprintf("Inserted %d aggregated pair history, deleted %d lines after aggregation", inserted, deleted), zap.String("process", "cleaner"))
 	}
 }
 
 func (p *Cleaner) CleanCoinPrice() {
 	if inserted, deleted, err := p.Repository.CleanCoinPriceHistory(); err != nil {
-		p.Logger.Warn("Failed to clean coin price history, if you this multiple times per day, there's something wrong", zap.Error(err))
+		p.Logger.Warn("Failed to clean coin price history, if you this multiple days in a row, there's something wrong", zap.Error(err))
 	} else {
 		p.Logger.Debug(fmt.Sprintf("Inserted %d aggregated coin price, deleted %d lines after aggregation", inserted, deleted), zap.String("process", "cleaner"))
 	}

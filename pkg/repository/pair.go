@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -25,6 +26,12 @@ func (r *Repository) GetPairs(filters ...QueryFilter) (map[string]model.Pair, er
 	}
 
 	return util.AsMap(pairs, func(p model.Pair) string { return util.Symbol(p.FromCoin, p.ToCoin) }), nil
+}
+
+func Pair(from, to string) QueryFilter {
+	return func(d *gorm.DB) *gorm.DB {
+		return d.Where("from_coin = ?", from).Where("to_coin = ?", to)
+	}
 }
 
 func (r *Repository) GetLastPairRatiosBefore(t time.Time) ([]model.PairHistory, error) {
@@ -59,8 +66,41 @@ func ToCoin(coin string) QueryFilter {
 	}
 }
 
-func (r *Repository) CleanOldPairHistory() (int64, error) {
-	date := time.Now().UTC().Add(-1 * time.Hour)
-	res := r.DB.DB.Where("timestamp < ?", date).Delete(&model.PairHistory{})
-	return res.RowsAffected, res.Error
+func (r *Repository) GetPairRatiosSince(fromCoin, toCoin string, from time.Time) ([]model.PairHistory, error) {
+	var data []model.PairHistory
+
+	req := r.DB.DB.Select("ph.*").
+		Table(model.PairTableName+" p").
+		Joins("JOIN "+model.PairHistoryTableName+" ph ON ph.pair_id = p.id").
+		Where("p.from_coin = ?", fromCoin).
+		Where("p.to_coin = ?", toCoin).
+		Where("ph.timestamp >= ?", from)
+
+	err := req.Find(&data).Error
+
+	return data, err
+}
+
+func (r *Repository) CleanOldPairHistory() (inserted int64, deleted int64, err error) {
+	if err := r.DB.Transaction(func(tx *gorm.DB) error {
+		resInsert := r.DB.DB.Exec(`
+		INSERT OR REPLACE INTO ` + model.PairHistoryTableName + `(pair_id, timestamp, ratio, averaged)
+		SELECT pair_id, strftime('%Y-%m-%d %H:00:00',timestamp) AS "timestamp" , avg(ratio) AS ratio , 1 FROM ` + model.PairHistoryTableName + ` ph WHERE (ph.averaged IS NULL OR ph.averaged = 0) AND timestamp < strftime('%Y-%m-%d 00:00:00','now')
+		GROUP BY 1,2`)
+		if resInsert.Error != nil {
+			return fmt.Errorf("failed to insert aggregated data: %w", err)
+		}
+		inserted = resInsert.RowsAffected
+
+		resDelete := r.DB.DB.Exec(`DELETE FROM ` + model.PairHistoryTableName + ` WHERE (averaged IS NULL OR averaged = 0) AND timestamp < strftime('%Y-%m-%d 00:00:00','now')`)
+		if resDelete.Error != nil {
+			return fmt.Errorf("failed to delete old data after aggregation: %w", err)
+		}
+		deleted = resDelete.RowsAffected
+
+		return nil
+	}); err != nil {
+		return 0, 0, err
+	}
+	return
 }
