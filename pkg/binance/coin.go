@@ -85,7 +85,7 @@ func (c *Client) GetSymbolPriceAtTime(ctx context.Context, coin, altCoin string,
 	}
 
 	if len(prices) == 0 {
-		return CoinPrice{}, errors.New("No price found, if the coin didn't exist, maybe don't put it in your list !")
+		return CoinPrice{}, ErrNoPriceFoundAtTime
 	}
 	kline := prices[0]
 
