@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -59,8 +60,26 @@ func ToCoin(coin string) QueryFilter {
 	}
 }
 
-func (r *Repository) CleanOldPairHistory() (int64, error) {
-	date := time.Now().UTC().Add(-1 * time.Hour)
-	res := r.DB.DB.Where("timestamp < ?", date).Delete(&model.PairHistory{})
-	return res.RowsAffected, res.Error
+func (r *Repository) CleanOldPairHistory() (inserted int64, deleted int64, err error) {
+	if err := r.DB.Transaction(func(tx *gorm.DB) error {
+		resInsert := r.DB.DB.Exec(`
+		INSERT OR REPLACE INTO ` + model.PairHistoryTableName + `(pair_id, timestamp, ratio, averaged)
+		SELECT pair_id, strftime('%Y-%m-%d %H:00:00',timestamp) AS "timestamp" , avg(ratio) AS ratio , 1 FROM ` + model.PairHistoryTableName + ` ph WHERE (ph.averaged IS NULL OR ph.averaged = 0) AND timestamp < strftime('%Y-%m-%d 00:00:00','now')
+		GROUP BY 1,2`)
+		if resInsert.Error != nil {
+			return fmt.Errorf("failed to insert aggregated data: %w", err)
+		}
+		inserted = resInsert.RowsAffected
+
+		resDelete := r.DB.DB.Exec(`DELETE FROM ` + model.PairHistoryTableName + ` WHERE (averaged IS NULL OR averaged = 0) AND timestamp < strftime('%Y-%m-%d 00:00:00','now')`)
+		if resDelete.Error != nil {
+			return fmt.Errorf("failed to delete old data after aggregation: %w", err)
+		}
+		deleted = resDelete.RowsAffected
+
+		return nil
+	}); err != nil {
+		return 0, 0, err
+	}
+	return
 }
