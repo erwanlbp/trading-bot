@@ -29,6 +29,14 @@ func AsMap[T any, K comparable](slice []T, keyGetter Mapper[T, K]) map[K]T {
 	return res
 }
 
+func AsSet[T any, K comparable](slice []T, keyGetter Mapper[T, K]) map[K]bool {
+	res := make(map[K]bool)
+	for _, e := range slice {
+		res[keyGetter(e)] = true
+	}
+	return res
+}
+
 func Exists[T any](slice []T, finder Predicate[T]) bool {
 	for _, e := range slice {
 		if finder(e) {

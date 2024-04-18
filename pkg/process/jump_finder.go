@@ -184,6 +184,12 @@ func (p *JumpFinder) CalculateRatios() ([]model.PairWithTickerRatio, error) {
 		return nil, fmt.Errorf("failed to get existing pairs: %w", err)
 	}
 
+	ec, err := p.Repository.GetEnabledCoins()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get enabled coins: %w", err)
+	}
+	enabledCoins := util.AsSet(ec, util.Identity[string]())
+
 	var pairsHistory []model.PairHistory
 	var res []model.PairWithTickerRatio
 	for _, coinFromPrice := range lastPrices {
@@ -202,11 +208,14 @@ func (p *JumpFinder) CalculateRatios() ([]model.PairWithTickerRatio, error) {
 			}
 			pairsHistory = append(pairsHistory, history)
 
-			res = append(res, model.PairWithTickerRatio{
-				Pair:      pair,
-				Ratio:     ratio,
-				Timestamp: now,
-			})
+			// We only return pairs which have enabled to_coin, we don't want to jump to some disabled coin
+			if enabledCoins[pair.ToCoin] {
+				res = append(res, model.PairWithTickerRatio{
+					Pair:      pair,
+					Ratio:     ratio,
+					Timestamp: now,
+				})
+			}
 		}
 	}
 
