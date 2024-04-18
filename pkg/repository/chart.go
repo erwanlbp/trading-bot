@@ -23,6 +23,24 @@ func (r *Repository) GetCharts(modifiers ...QueryFilter) ([]model.Chart, error) 
 	return res, err
 }
 
+func (r *Repository) GetDefaultChartsWithBestDiff() ([]model.Chart, error) {
+
+	bestDiffs, err := r.GetDiff(OrderBy("diff desc"), Limit(1))
+	if err != nil {
+		return nil, err
+	}
+	if len(bestDiffs) == 0 {
+		return nil, fmt.Errorf("didn't find any diff")
+	}
+	bestDiff := bestDiffs[0]
+	return []model.Chart{
+		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 14", bestDiff.FromCoin, bestDiff.ToCoin)},
+		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 7", bestDiff.FromCoin, bestDiff.ToCoin)},
+		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 3", bestDiff.FromCoin, bestDiff.ToCoin)},
+		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 1", bestDiff.FromCoin, bestDiff.ToCoin)},
+	}, nil
+}
+
 func Type(t string) QueryFilter {
 	return func(q *gorm.DB) *gorm.DB {
 		return q.Where("type = ?", t)

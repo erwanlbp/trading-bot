@@ -44,6 +44,7 @@ func (p *Handlers) InitMenu(ctx context.Context, conf *configfile.ConfigFile) {
 	p.TelegramClient.CreateHandler(&btnChart, p.ChartMenu)
 	p.TelegramClient.CreateHandler(&btnNewChart, p.NewChart)
 	p.TelegramClient.CreateHandler("/new_chart", p.ValidateNewChart)
+	p.TelegramClient.CreateHandler("/chart", p.GenerateChart)
 
 	// Setup menus
 	mainMenu.Reply(

@@ -120,12 +120,19 @@ func (c *Client) WaitForOrderCompletion(ctx context.Context, symbol string, orde
 		case <-ctx.Done():
 			c.Logger.Debug(fmt.Sprintf("Context is done while waiting for order completion, canceling order '%d'", orderId), zap.String("last_status", string(orderLastStatus.Status)))
 
-			cancelStatus, err := c.client.NewCancelOrderService().Symbol(symbol).OrderID(orderId).Do(ctx)
+			// Context that is not canceled yet, that'll have only 1.5s to cancel the order, before the bot is forced turned off
+			cancelCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second+500*time.Millisecond)
+			defer cancel()
+
+			cancelStatus, err := c.client.NewCancelOrderService().Symbol(symbol).OrderID(orderId).Do(cancelCtx)
 			if err != nil {
 				c.Logger.Error("Failed to cancel order", zap.Error(err))
 				return OrderResult{Order: orderLastStatus, Cancel: cancelStatus}, err
 			}
-			return OrderResult{Order: orderLastStatus, Cancel: cancelStatus}, fmt.Errorf("context canceled")
+
+			c.Logger.Info(fmt.Sprintf("Canceled order '%d' because bot is stopping", orderId))
+
+			return OrderResult{Order: orderLastStatus, Cancel: cancelStatus}, nil
 		case <-timeoutCtx.Done():
 			c.Logger.Error("Reached timeout while waiting for order completion, canceling it", zap.String("last_status", string(orderLastStatus.Status)))
 			cancelStatus, err := c.client.NewCancelOrderService().Symbol(symbol).OrderID(orderId).Do(ctx)
