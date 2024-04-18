@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
 	"gopkg.in/telebot.v3"
 
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
@@ -58,6 +59,7 @@ func (p *Handlers) ShowLiveConfig(c telebot.Context) error {
 
 func (p *Handlers) ReloadConfigFile(c telebot.Context) error {
 	if err := p.GlobalConf.ReloadConfigFile(context.Background()); err != nil {
+		p.Logger.Error("Failed to reload config file", zap.Error(err))
 		return c.Send(fmt.Sprintf("Failed to reload config file: %s", err.Error()))
 	}
 
@@ -117,7 +119,7 @@ func (p *Handlers) ValidateCoinEdit(c telebot.Context) error {
 	}
 
 	newConf := util.Copy(*p.Conf)
-	newConf.Coins = util.Distinct(coins)
+	newConf.Coins = util.Distinct(util.FilterSlice(coins, func(coin string) bool { return strings.TrimSpace(coin) != "" }))
 	sort.Strings(newConf.Coins)
 
 	if err := newConf.SaveToFile(); err != nil {

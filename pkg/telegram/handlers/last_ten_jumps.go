@@ -5,12 +5,14 @@ import (
 	"time"
 
 	"gopkg.in/telebot.v3"
+
+	"github.com/erwanlbp/trading-bot/pkg/repository"
 )
 
 func (p *Handlers) LastTenJumps(ctx context.Context) {
 	p.TelegramClient.CreateHandler(&btnLast10Jumps, func(c telebot.Context) error {
 
-		jump, err := p.Repository.GetJumps(10)
+		jump, err := p.Repository.GetJumps(repository.OrderBy("timestamp desc"), repository.Limit(10))
 		if err != nil {
 			return c.Send("Error while getting last ten jump, please retry")
 		}

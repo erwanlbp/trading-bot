@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/adshao/go-binance/v2"
@@ -31,10 +30,15 @@ func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) (m
 	symbols := getSymbols(coins, altCoins, c.SymbolBlackList)
 
 	if len(symbols) == 0 {
-		return nil, nil
+		return nil, fmt.Errorf("no symbols found")
 	}
 
-	prices, err := getPrices(ctx, symbols, c)
+	prices, err := c.client.NewListPricesService().Symbols(symbols).Do(ctx)
+	if err != nil {
+		if ErrorIs(err, BinanceErrorInvalidSymbol) {
+			prices, err = c.dichotomicPriceFetching(ctx, symbols)
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -61,60 +65,59 @@ func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) (m
 	return res, nil
 }
 
-// Sorted by price and altcoin name
-func (c *Client) GetCoinsPriceGroupByAltCoins(ctx context.Context, coins, altCoins []string) (map[string]CoinPriceGroupByAlt, error) {
+func (c *Client) GetSymbolPriceAtTime(ctx context.Context, coin, altCoin string, date time.Time) (CoinPrice, error) {
 
-	symbols := getSymbols(coins, altCoins, c.SymbolBlackList)
+	symbols := getSymbols([]string{coin}, []string{altCoin}, c.SymbolBlackList)
 
 	if len(symbols) == 0 {
-		return nil, nil
+		return CoinPrice{}, fmt.Errorf("no symbols found")
 	}
+	symbol := symbols[0]
 
-	prices, err := getPrices(ctx, symbols, c)
+	prices, err := c.client.NewKlinesService().
+		Symbol(symbol).
+		Interval("1m").
+		Limit(1).
+		EndTime(date.UnixMilli()).
+		Do(ctx)
 	if err != nil {
-		return nil, err
-	}
-	now := time.Now().UTC()
-
-	var res = make(map[string]CoinPriceGroupByAlt)
-
-	balanceGroupByCoin := util.GroupByProperty(prices, func(s *binance.SymbolPrice) string {
-		coin, _, _ := util.Unsymbol(s.Symbol, coins, altCoins)
-		return coin
-	})
-
-	for coin, symbolPrices := range balanceGroupByCoin {
-		var resTmp []CoinPrice
-		sort.Slice(symbolPrices, func(i, j int) bool {
-			return symbolPrices[i].Symbol < symbolPrices[j].Symbol
-		})
-
-		for _, price := range symbolPrices {
-			_, altCoin, err := util.Unsymbol(price.Symbol, coins, altCoins)
-			if err != nil {
-				return nil, fmt.Errorf("couldn't unsymbol %s: %w", coin, err)
-			}
-			p, err := decimal.NewFromString(price.Price)
-			if err != nil {
-				return nil, fmt.Errorf("failed parsing price for %s(%s): %w", price.Symbol, price.Price, err)
-			}
-			resTmp = append(resTmp, CoinPrice{
-				Coin:      coin,
-				AltCoin:   altCoin,
-				Price:     p,
-				Timestamp: now,
-			})
-		}
-		res[coin] = CoinPriceGroupByAlt{
-			Coin:   coin,
-			Prices: resTmp,
-		}
+		return CoinPrice{}, err
 	}
 
-	return res, nil
+	if len(prices) == 0 {
+		return CoinPrice{}, ErrNoPriceFoundAtTime
+	}
+	kline := prices[0]
+
+	// Average the price between the open and close of the candle
+	var pricesToAvg []decimal.Decimal
+	open, err := decimal.NewFromString(kline.Open)
+	if err == nil {
+		pricesToAvg = append(pricesToAvg, open)
+	}
+	close, err := decimal.NewFromString(kline.Close)
+	if err == nil {
+		pricesToAvg = append(pricesToAvg, close)
+	}
+	if len(pricesToAvg) == 0 {
+		return CoinPrice{}, errors.New("couldn't find/parse prices")
+	}
+
+	finalPrice := decimal.Zero
+	for _, price := range pricesToAvg {
+		finalPrice = finalPrice.Add(price)
+	}
+	finalPrice = finalPrice.Div(decimal.NewFromInt(int64(len(pricesToAvg))))
+
+	return CoinPrice{
+		Coin:      coin,
+		AltCoin:   altCoin,
+		Price:     finalPrice,
+		Timestamp: date,
+	}, nil
 }
 
-func getSymbols(coins []string, altCoins []string, blacklist SymbolBlackListGetter) map[string]bool {
+func getSymbols(coins []string, altCoins []string, blacklist SymbolBlackListGetter) []string {
 	var symbols = make(map[string]bool)
 	for _, coin := range coins {
 		for _, altCoin := range altCoins {
@@ -126,18 +129,7 @@ func getSymbols(coins []string, altCoins []string, blacklist SymbolBlackListGett
 			}
 		}
 	}
-	return symbols
-}
-
-func getPrices(ctx context.Context, symbols map[string]bool, c *Client) ([]*binance.SymbolPrice, error) {
-	uniqueSymbols := util.Keys(symbols)
-	prices, err := c.client.NewListPricesService().Symbols(uniqueSymbols).Do(ctx)
-	if err != nil {
-		if ErrorIs(err, BinanceErrorInvalidSymbol) {
-			prices, err = c.dichotomicPriceFetching(ctx, uniqueSymbols)
-		}
-	}
-	return prices, err
+	return util.Keys(symbols)
 }
 
 func (c *Client) GetSymbolPrice(ctx context.Context, symbol string) (decimal.Decimal, error) {

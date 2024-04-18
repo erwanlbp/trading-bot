@@ -10,6 +10,10 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/model"
 )
 
+func (r *Repository) DisableCoin(coin string) error {
+	return r.DB.DB.Table(model.CoinTableName).Where("coin = ?", coin).Update("enabled", 0).Error
+}
+
 func (r *Repository) GetCurrentCoin() (model.CurrentCoin, bool, error) {
 	var res model.CurrentCoin
 	err := r.DB.Order("timestamp desc").Limit(1).Find(&res).Error

@@ -7,9 +7,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func DebugPrintJson(x interface{}) {
-	b, _ := json.Marshal(x)
-	fmt.Println(string(b))
+func DebugPrintJson(x ...interface{}) {
+	for _, e := range x {
+		b, _ := json.Marshal(e)
+		fmt.Println(string(b))
+	}
 }
 
 func DebugPrintYaml(x interface{}) {
