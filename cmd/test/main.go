@@ -9,5 +9,5 @@ import (
 func main() {
 	conf := config.Init(context.Background())
 
-	conf.ProcessCleaner.CleanCoinPrice()
+	conf.ProcessCleaner.CleanPairHistory()
 }
