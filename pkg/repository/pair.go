@@ -28,6 +28,12 @@ func (r *Repository) GetPairs(filters ...QueryFilter) (map[string]model.Pair, er
 	return util.AsMap(pairs, func(p model.Pair) string { return util.Symbol(p.FromCoin, p.ToCoin) }), nil
 }
 
+func Pair(from, to string) QueryFilter {
+	return func(d *gorm.DB) *gorm.DB {
+		return d.Where("from_coin = ?", from).Where("to_coin = ?", to)
+	}
+}
+
 func (r *Repository) GetLastPairRatiosBefore(t time.Time) ([]model.PairHistory, error) {
 	var res []model.PairHistory
 	err := r.DB.Raw(
@@ -58,6 +64,21 @@ func ToCoin(coin string) QueryFilter {
 	return func(q *gorm.DB) *gorm.DB {
 		return q.Where("to_coin = ?", coin)
 	}
+}
+
+func (r *Repository) GetPairRatiosSince(fromCoin, toCoin string, from time.Time) ([]model.PairHistory, error) {
+	var data []model.PairHistory
+
+	req := r.DB.DB.Select("ph.*").
+		Table(model.PairTableName+" p").
+		Joins("JOIN "+model.PairHistoryTableName+" ph ON ph.pair_id = p.id").
+		Where("p.from_coin = ?", fromCoin).
+		Where("p.to_coin = ?", toCoin).
+		Where("ph.timestamp >= ?", from)
+
+	err := req.Find(&data).Error
+
+	return data, err
 }
 
 func (r *Repository) CleanOldPairHistory() (inserted int64, deleted int64, err error) {

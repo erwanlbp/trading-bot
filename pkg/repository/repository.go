@@ -44,3 +44,9 @@ func OrderBy(columns ...string) QueryFilter {
 		return q.Order(strings.Join(columns, ", "))
 	}
 }
+
+func Limit(limit int) QueryFilter {
+	return func(q *gorm.DB) *gorm.DB {
+		return q.Limit(limit)
+	}
+}
