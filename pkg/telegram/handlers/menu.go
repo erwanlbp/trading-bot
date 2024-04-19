@@ -35,7 +35,8 @@ var (
 )
 
 func (p *Handlers) InitMenu(ctx context.Context, conf *configfile.ConfigFile) {
-	p.Balance(ctx, conf)
+	p.TelegramClient.CreateHandler(&btnBalance, p.ShowBalances)
+
 	p.LastTenJumps(ctx)
 	p.NextJump(ctx, conf)
 	p.Configuration(ctx)
