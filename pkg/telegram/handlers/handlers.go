@@ -35,7 +35,7 @@ func NewHandlers(l *log.Logger, conf *configfile.ConfigFile, c *telegram.Client,
 }
 
 func (p *Handlers) InitHandlers(ctx context.Context) {
-	p.InitMenu(ctx, p.Conf)
+	p.InitMenu(ctx)
 }
 
 func (p *Handlers) CreatePaginatedHandlers(messagePaginated map[interface{}]string, defaultValue interface{}, selector *telebot.ReplyMarkup) []telebot.Btn {
@@ -62,7 +62,7 @@ func (p *Handlers) CreatePaginatedHandlers(messagePaginated map[interface{}]stri
 			//	return btn.Unique != defaultValue
 			//})
 			//selector.Inline(selector.Row(buttonsWithoutCurrent...))
-			return c.Edit(telegram.FormatForMD(messagePaginated[b.Unique]), selector, telebot.ModeMarkdown)
+			return c.Edit(telegram.FormatForMD(messagePaginated[b.Unique]), selector)
 		})
 	}
 

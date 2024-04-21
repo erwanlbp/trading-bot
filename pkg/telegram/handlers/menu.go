@@ -4,8 +4,6 @@ import (
 	"context"
 
 	"gopkg.in/telebot.v3"
-
-	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 )
 
 var (
@@ -34,7 +32,7 @@ var (
 	btnExportDB       = configurationMenu.Text("📬 Export DB")
 )
 
-func (p *Handlers) InitMenu(ctx context.Context, conf *configfile.ConfigFile) {
+func (p *Handlers) InitMenu(ctx context.Context) {
 	p.TelegramClient.CreateHandler(&btnBalance, p.ShowBalances)
 	p.TelegramClient.CreateHandler(&btnLast10Jumps, p.LastTenJumps)
 	p.TelegramClient.CreateHandler(&btnNextJump, p.NextJump)

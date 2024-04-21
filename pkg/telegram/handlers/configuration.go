@@ -50,11 +50,11 @@ func (p *Handlers) ShowConfigFile(c telebot.Context) error {
 	if err != nil {
 		return c.Send("Failed to parse config.yaml: " + err.Error())
 	}
-	return c.Send(PrepareConfContentForMessage(confFile), mainMenu, telebot.ModeMarkdown)
+	return c.Send(PrepareConfContentForMessage(confFile), mainMenu)
 }
 
 func (p *Handlers) ShowLiveConfig(c telebot.Context) error {
-	return c.Send(PrepareConfContentForMessage(*p.Conf), mainMenu, telebot.ModeMarkdown)
+	return c.Send(PrepareConfContentForMessage(*p.Conf), mainMenu)
 }
 
 func (p *Handlers) ReloadConfigFile(c telebot.Context) error {
@@ -65,7 +65,7 @@ func (p *Handlers) ReloadConfigFile(c telebot.Context) error {
 
 	response := "Reloaded config file\n" + PrepareConfContentForMessage(*p.Conf)
 
-	return c.Send(response, mainMenu, telebot.ModeMarkdown)
+	return c.Send(response, mainMenu)
 }
 
 func (p *Handlers) ListCoins(c telebot.Context) error {
@@ -93,7 +93,7 @@ func (p *Handlers) ListCoins(c telebot.Context) error {
 	var messageParts []string = []string{}
 	messageParts = append(messageParts, "```", coinsStr, "```")
 
-	return c.Send(strings.Join(messageParts, "\n"), telebot.ModeMarkdownV2, telebot.RemoveKeyboard, configurationMenu)
+	return c.Send(strings.Join(messageParts, "\n"), telebot.RemoveKeyboard, configurationMenu)
 }
 
 func (p *Handlers) EditCoins(c telebot.Context) error {
@@ -107,7 +107,7 @@ func (p *Handlers) EditCoins(c telebot.Context) error {
 	sort.Strings(coinsSlice)
 	messageParts = append(messageParts, fmt.Sprintf("`/edit_coins %s`", strings.Join(coinsSlice, " ")))
 
-	return c.Send(strings.Join(messageParts, "\n"), telebot.ModeMarkdownV2, telebot.RemoveKeyboard, mainMenu)
+	return c.Send(strings.Join(messageParts, "\n"), telebot.RemoveKeyboard, mainMenu)
 }
 
 func (p *Handlers) ValidateCoinEdit(c telebot.Context) error {
@@ -126,7 +126,7 @@ func (p *Handlers) ValidateCoinEdit(c telebot.Context) error {
 		return c.Send("Failed to save conf to file: " + err.Error())
 	}
 
-	return c.Send("Saved coin list.\n⚠️*You'll need to reload the config file for it to be effective*⚠️\nNew conf is:\n"+PrepareConfContentForMessage(newConf), telebot.ModeMarkdown, mainMenu)
+	return c.Send("Saved coin list.\n⚠️*You'll need to reload the config file for it to be effective*⚠️\nNew conf is:\n"+PrepareConfContentForMessage(newConf), mainMenu)
 }
 
 func PrepareConfContentForMessage(conf configfile.ConfigFile) string {

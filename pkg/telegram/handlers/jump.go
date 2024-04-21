@@ -34,7 +34,7 @@ func (p *Handlers) NextJump(c telebot.Context) error {
 
 	parts := []string{ts, telegram.FormatForMD(msg)}
 
-	return c.Send(strings.Join(parts, "\n"), telebot.ModeMarkdown)
+	return c.Send(strings.Join(parts, "\n"))
 }
 
 func (p *Handlers) LastTenJumps(c telebot.Context) error {
@@ -53,5 +53,5 @@ func (p *Handlers) LastTenJumps(c telebot.Context) error {
 		}
 	})
 
-	return c.Send(telegram.FormatForMD(msg), telebot.ModeMarkdown)
+	return c.Send(telegram.FormatForMD(msg))
 }

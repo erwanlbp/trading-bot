@@ -76,7 +76,7 @@ func (p *Handlers) ShowBalances(c telebot.Context) error {
 
 	buttons := p.CreatePaginatedHandlers(messagePaginated, constant.USDT, selector)
 	selector.Inline(selector.Row(buttons...))
-	return c.Send(telegram.FormatForMD(messagePaginated[constant.USDT]), selector, telebot.ModeMarkdown)
+	return c.Send(telegram.FormatForMD(messagePaginated[constant.USDT]), selector)
 }
 
 func getAltValueByCoin(prices map[string]binance.CoinPrice, balance map[string]decimal.Decimal) (map[string][]binance.CoinPrice, map[string]decimal.Decimal) {

@@ -26,8 +26,12 @@ type Client struct {
 // Documentation : https://github.com/tucnak/telebot
 func NewClient(ctx context.Context, l *log.Logger, cf *configfile.ConfigFile) (*Client, error) {
 	pref := telebot.Settings{
-		Token:  cf.Telegram.Token,
-		Poller: &telebot.LongPoller{Timeout: 10 * time.Second},
+		Token:     cf.Telegram.Token,
+		ParseMode: telebot.ModeMarkdown,
+		Poller: &telebot.LongPoller{
+			Timeout:        10 * time.Second,
+			AllowedUpdates: []string{"message", "chosen_inline_result", "inline_query"},
+		},
 	}
 
 	b, err := telebot.NewBot(pref)

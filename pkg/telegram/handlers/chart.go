@@ -68,7 +68,7 @@ func (p *Handlers) ChartMenu(c telebot.Context) error {
 		"`/chart COIN1,COIN2,COIN3 1`",
 	}
 
-	return c.Send(strings.Join(message, "\n"), telebot.ModeMarkdown, response)
+	return c.Send(strings.Join(message, "\n"), response)
 }
 
 type ChartPoint struct {
@@ -210,7 +210,7 @@ func (p *Handlers) NewChart(c telebot.Context) error {
 		"`/new_chart type:coin_price coins:COIN1,COIN2,COIN3,COIN4 duration:7`",
 	}
 
-	return c.Send(strings.Join(messageParts, "\n"), telebot.ModeMarkdownV2, telebot.RemoveKeyboard, chartMenu)
+	return c.Send(strings.Join(messageParts, "\n"), telebot.RemoveKeyboard, chartMenu)
 }
 
 func (p *Handlers) ValidateNewChart(c telebot.Context) error {
