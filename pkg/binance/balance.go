@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/erwanlbp/trading-bot/pkg/util"
 	"github.com/shopspring/decimal"
+
+	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
 func (c *Client) GetBalance(ctx context.Context, coins ...string) (map[string]decimal.Decimal, error) {
@@ -24,7 +25,9 @@ func (c *Client) GetBalance(ctx context.Context, coins ...string) (map[string]de
 		if err != nil {
 			return nil, fmt.Errorf("failed parsing balance for %s(%s): %w", b.Asset, b.Free, err)
 		}
-		res[b.Asset] = balance
+		if !balance.Equal(decimal.Zero) {
+			res[b.Asset] = balance
+		}
 	}
 
 	return res, nil

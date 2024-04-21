@@ -13,7 +13,6 @@ import (
 
 	"github.com/erwanlbp/trading-bot/pkg/model"
 	"github.com/erwanlbp/trading-bot/pkg/repository"
-	"github.com/erwanlbp/trading-bot/pkg/telegram"
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
@@ -25,10 +24,10 @@ func (p *Handlers) ChartMenu(c telebot.Context) error {
 
 	// Default all coins charts
 	allCharts := []model.Chart{
-		model.DefaultCoinPriceChartAllCoin30Day,
-		model.DefaultCoinPriceChartAllCoin7Day,
-		model.DefaultCoinPriceChartAllCoin3Day,
 		model.DefaultCoinPriceChartAllCoin1Day,
+		model.DefaultCoinPriceChartAllCoin3Day,
+		model.DefaultCoinPriceChartAllCoin7Day,
+		model.DefaultCoinPriceChartAllCoin30Day,
 	}
 
 	// Default best diff with current coin charts
@@ -65,8 +64,8 @@ func (p *Handlers) ChartMenu(c telebot.Context) error {
 
 	var message []string = []string{
 		"Choose a chart in menu or type a command like ⬇️",
-		telegram.FormatForMD("/chart COIN1/COIN2 3"),
-		telegram.FormatForMD("/chart COIN1,COIN2,COIN3 1"),
+		"`/chart COIN1/COIN2 3`",
+		"`/chart COIN1,COIN2,COIN3 1`",
 	}
 
 	return c.Send(strings.Join(message, "\n"), telebot.ModeMarkdown, response)
@@ -208,13 +207,8 @@ func (p *Handlers) NewChart(c telebot.Context) error {
 		"Copy and paste the code",
 		"Edit the chart type, coins, duration, and send it to validate",
 		"Or ignore this message to do nothing",
+		"`/new_chart type:coin_price coins:COIN1,COIN2,COIN3,COIN4 duration:7`",
 	}
-
-	messageParts = append(messageParts,
-		"```",
-		"/new_chart type:coin_price coins:COIN1,COIN2,COIN3,COIN4 duration:7",
-		"```",
-	)
 
 	return c.Send(strings.Join(messageParts, "\n"), telebot.ModeMarkdownV2, telebot.RemoveKeyboard, chartMenu)
 }

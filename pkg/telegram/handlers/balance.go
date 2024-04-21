@@ -3,12 +3,12 @@ package handlers
 import (
 	"context"
 	"sort"
+	"time"
 
 	"github.com/shopspring/decimal"
 	"gopkg.in/telebot.v3"
 
 	"github.com/erwanlbp/trading-bot/pkg/binance"
-	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 	"github.com/erwanlbp/trading-bot/pkg/constant"
 	"github.com/erwanlbp/trading-bot/pkg/telegram"
 	"github.com/erwanlbp/trading-bot/pkg/util"
@@ -20,62 +20,63 @@ type balanceDisplayLine struct {
 	AltValue decimal.Decimal
 }
 
-func (p *Handlers) Balance(ctx context.Context, conf *configfile.ConfigFile) {
-	binanceClient := p.BinanceClient
-	p.TelegramClient.CreateHandler(&btnBalance, func(c telebot.Context) error {
-		selector := &telebot.ReplyMarkup{}
-		balance, err := binanceClient.GetBalance(ctx, append(binanceClient.ConfigFile.Coins, binanceClient.ConfigFile.Bridge)...)
-		if err != nil {
-			return c.Send("Error while getting balances, please retry")
+func (p *Handlers) ShowBalances(c telebot.Context) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	selector := &telebot.ReplyMarkup{}
+	balances, err := p.BinanceClient.GetBalance(ctx, append(p.Conf.Coins, p.Conf.Bridge)...)
+	if err != nil {
+		return c.Send("Error while getting balances, please retry: " + err.Error())
+	}
+
+	var balancePositiveCoin []string
+	for s, d := range balances {
+		if d.GreaterThan(decimal.Zero) {
+			balancePositiveCoin = append(balancePositiveCoin, s)
 		}
+	}
+	sort.Strings(balancePositiveCoin)
 
-		balancePositiveCoin := getPositiveBalance(balance)
+	altCoinList := constant.AltCoins // TODO put in config file ?
 
-		altCoinList := constant.AltCoins // TODO put in config file ?
-		sort.Strings(altCoinList)
-		prices, err := binanceClient.GetCoinsPrice(ctx, balancePositiveCoin, altCoinList)
-		if err != nil {
-			return c.Send("Error fetching coin price, please retry")
+	prices, err := p.BinanceClient.GetCoinsPrice(ctx, balancePositiveCoin, altCoinList)
+	if err != nil {
+		return c.Send("Error fetching coin price, please retry: " + err.Error())
+	}
+
+	altValuesByCoin, totalAlt := getAltValueByCoin(prices, balances)
+
+	// Build table
+	messagePaginated := map[interface{}]string{}
+
+	altWithCoinPrices := map[string][]balanceDisplayLine{}
+	for _, coin := range balancePositiveCoin {
+		for _, altPrices := range altValuesByCoin[coin] {
+			line := balanceDisplayLine{
+				Coin:     coin,
+				Value:    balances[coin],
+				AltValue: altPrices.Price,
+			}
+			altWithCoinPrices[altPrices.AltCoin] = append(altWithCoinPrices[altPrices.AltCoin], line)
 		}
+	}
 
-		altValuesByCoin, totalAlt := getAltValueByCoin(prices, balance)
-
-		// Sort to get amount desc but sometimes not really working idk why ?
-		keys := util.Keys(altValuesByCoin)
-		sort.SliceStable(keys, func(i, j int) bool {
-			return altValuesByCoin[keys[i]][0].Price.GreaterThan(altValuesByCoin[keys[j]][0].Price)
+	for _, altCoin := range altCoinList {
+		headers := []string{"Coin", "Value", altCoin}
+		footer := generateFooter(len(headers), altCoin, totalAlt[altCoin])
+		messagePaginated[altCoin] = util.ToASCIITable(altWithCoinPrices[altCoin], headers, footer, func(line balanceDisplayLine) []string {
+			value := line.AltValue.String()
+			if altCoin == "USDT" {
+				value = line.AltValue.StringFixed(2)
+			}
+			return []string{line.Coin, line.Value.String(), value}
 		})
+	}
 
-		// Build table
-		chunks := util.Chunk(keys, conf.Telegram.Handlers.NbBalancesDisplayed)
-		messagePaginated := map[interface{}]string{}
-
-		for _, chunk := range chunks {
-			altWithCoinPrices := map[string][]balanceDisplayLine{}
-			for _, coin := range chunk {
-				for _, altPrices := range altValuesByCoin[coin] {
-					line := balanceDisplayLine{
-						Coin:     coin,
-						Value:    balance[coin],
-						AltValue: altPrices.Price,
-					}
-					altWithCoinPrices[altPrices.AltCoin] = append(altWithCoinPrices[altPrices.AltCoin], line)
-				}
-			}
-
-			for _, altCoin := range altCoinList {
-				headers := []string{"Coin", "Value", altCoin}
-				footer := generateFooter(len(headers), altCoin, totalAlt[altCoin])
-				messagePaginated[altCoin] = util.ToASCIITable(altWithCoinPrices[altCoin], headers, footer, func(line balanceDisplayLine) []string {
-					return []string{line.Coin, line.Value.String(), line.AltValue.String()}
-				})
-			}
-		}
-
-		buttons := p.CreatePaginatedHandlers(messagePaginated, constant.USDT, selector)
-		selector.Inline(selector.Row(buttons...))
-		return c.Send(telegram.FormatForMD(messagePaginated[constant.USDT]), selector, telebot.ModeMarkdown)
-	})
+	buttons := p.CreatePaginatedHandlers(messagePaginated, constant.USDT, selector)
+	selector.Inline(selector.Row(buttons...))
+	return c.Send(telegram.FormatForMD(messagePaginated[constant.USDT]), selector, telebot.ModeMarkdown)
 }
 
 func getAltValueByCoin(prices map[string]binance.CoinPrice, balance map[string]decimal.Decimal) (map[string][]binance.CoinPrice, map[string]decimal.Decimal) {
@@ -93,16 +94,6 @@ func getAltValueByCoin(prices map[string]binance.CoinPrice, balance map[string]d
 		totalAlt[coinPrices.AltCoin] = totalAlt[coinPrices.AltCoin].Add(balanceValue)
 	}
 	return altValuesByCoin, totalAlt
-}
-
-func getPositiveBalance(balance map[string]decimal.Decimal) []string {
-	var balancePositiveCoin []string
-	for s, d := range balance {
-		if d.GreaterThan(decimal.Zero) {
-			balancePositiveCoin = append(balancePositiveCoin, s)
-		}
-	}
-	return balancePositiveCoin
 }
 
 func generateFooter(headerLen int, altCoin string, total decimal.Decimal) []string {

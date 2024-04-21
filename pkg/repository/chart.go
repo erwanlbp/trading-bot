@@ -34,10 +34,10 @@ func (r *Repository) GetDefaultChartsWithBestDiff() ([]model.Chart, error) {
 	}
 	bestDiff := bestDiffs[0]
 	return []model.Chart{
-		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 14", bestDiff.FromCoin, bestDiff.ToCoin)},
-		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 7", bestDiff.FromCoin, bestDiff.ToCoin)},
-		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 3", bestDiff.FromCoin, bestDiff.ToCoin)},
 		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 1", bestDiff.FromCoin, bestDiff.ToCoin)},
+		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 3", bestDiff.FromCoin, bestDiff.ToCoin)},
+		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 7", bestDiff.FromCoin, bestDiff.ToCoin)},
+		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 14", bestDiff.FromCoin, bestDiff.ToCoin)},
 	}, nil
 }
 
