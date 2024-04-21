@@ -131,10 +131,11 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 		diff := feeMultiplier.Mul(pairRatio.Ratio).Div(lastPairRatio)
 
 		computedDiff = append(computedDiff, model.Diff{
-			FromCoin:  pairRatio.Pair.FromCoin,
-			ToCoin:    pairRatio.Pair.ToCoin,
-			Timestamp: time.Now().UTC(),
-			Diff:      diff,
+			FromCoin:   pairRatio.Pair.FromCoin,
+			ToCoin:     pairRatio.Pair.ToCoin,
+			Timestamp:  time.Now().UTC(),
+			Diff:       diff,
+			NeededDiff: wantedGain,
 		})
 
 		if diff.LessThan(wantedGain) {
@@ -252,6 +253,7 @@ func (p *JumpFinder) JumpTo(ctx context.Context, pair model.Pair) error {
 	if _, err := p.Repository.SetCurrentCoin(p.ConfigFile.Bridge, sell.Time()); err != nil {
 		p.Logger.Error(fmt.Sprintf("Failed setting current coin to %s during jump, continuing", p.ConfigFile.Bridge), zap.Error(err))
 	}
+	p.Logger.Info("Sold " + pair.FromCoin)
 	// TODO Add case where the order was created but got timeout with no partial_filled
 	// TODO Add case where the order is partially filled but we won't have enough to do next order so we consider it canceled
 	buy, err := p.Binance.Buy(ctx, pair.ToCoin, p.ConfigFile.Bridge)
@@ -263,6 +265,7 @@ func (p *JumpFinder) JumpTo(ctx context.Context, pair model.Pair) error {
 			return err
 		}
 	}
+	p.Logger.Info("Bought " + pair.ToCoin)
 
 	// Save jump and update pairs to new current_coin with new ratio
 

@@ -2,6 +2,7 @@ package binance
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -132,7 +133,7 @@ func (c *Client) WaitForOrderCompletion(ctx context.Context, symbol string, orde
 
 			c.Logger.Info(fmt.Sprintf("Canceled order '%d' because bot is stopping", orderId))
 
-			return OrderResult{Order: orderLastStatus, Cancel: cancelStatus}, nil
+			return OrderResult{Order: orderLastStatus, Cancel: cancelStatus}, errors.New("context canceled")
 		case <-timeoutCtx.Done():
 			c.Logger.Error("Reached timeout while waiting for order completion, canceling it", zap.String("last_status", string(orderLastStatus.Status)))
 			cancelStatus, err := c.client.NewCancelOrderService().Symbol(symbol).OrderID(orderId).Do(ctx)

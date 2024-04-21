@@ -66,7 +66,11 @@ func (p *Handlers) ShowBalances(c telebot.Context) error {
 		headers := []string{"Coin", "Value", altCoin}
 		footer := generateFooter(len(headers), altCoin, totalAlt[altCoin])
 		messagePaginated[altCoin] = util.ToASCIITable(altWithCoinPrices[altCoin], headers, footer, func(line balanceDisplayLine) []string {
-			return []string{line.Coin, line.Value.String(), line.AltValue.String()}
+			value := line.AltValue.String()
+			if altCoin == "USDT" {
+				value = line.AltValue.StringFixed(2)
+			}
+			return []string{line.Coin, line.Value.String(), value}
 		})
 	}
 

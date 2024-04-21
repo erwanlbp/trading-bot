@@ -105,7 +105,7 @@ func (p *Handlers) EditCoins(c telebot.Context) error {
 
 	coinsSlice := append([]string{}, p.Conf.Coins...)
 	sort.Strings(coinsSlice)
-	messageParts = append(messageParts, "```", "/edit_coins", strings.Join(coinsSlice, " "), "```")
+	messageParts = append(messageParts, fmt.Sprintf("`/edit_coins %s`", strings.Join(coinsSlice, " ")))
 
 	return c.Send(strings.Join(messageParts, "\n"), telebot.ModeMarkdownV2, telebot.RemoveKeyboard, mainMenu)
 }
