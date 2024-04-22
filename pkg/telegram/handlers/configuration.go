@@ -17,20 +17,6 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
-func (p *Handlers) Configuration(ctx context.Context) {
-	p.Notification(ctx)
-	p.TelegramClient.CreateHandler(&btnReloadConfig, p.ReloadConfigFile)
-	p.TelegramClient.CreateHandler(&btnShowLiveConfig, p.ShowLiveConfig)
-	p.TelegramClient.CreateHandler(&btnShowConfigFile, p.ShowConfigFile)
-	p.TelegramClient.CreateHandler(&btnListCoins, p.ListCoins)
-	p.TelegramClient.CreateHandler(&btnEditCoins, p.EditCoins)
-	p.TelegramClient.CreateHandler("/edit_coins", p.ValidateCoinEdit)
-
-	p.TelegramClient.CreateHandler(&btnConfiguration, func(c telebot.Context) error {
-		return c.Send("What do you want to do ?", configurationMenu)
-	})
-}
-
 func (p *Handlers) ExportDB(c telebot.Context) error {
 	copiedFilepath, err := p.GlobalConf.ExportDBFile()
 	if err != nil {
@@ -113,6 +99,10 @@ func (p *Handlers) EditCoins(c telebot.Context) error {
 func (p *Handlers) ValidateCoinEdit(c telebot.Context) error {
 
 	coins := c.Args()
+
+	if len(coins) == 0 {
+		return c.Send("No coins found in args, not allowed")
+	}
 
 	if err := configfile.CopyFileToBackup(); err != nil {
 		return c.Send("Failed to backup the config.yaml: " + err.Error())
