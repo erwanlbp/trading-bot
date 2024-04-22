@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"strings"
 
 	"gopkg.in/telebot.v3"
 )
@@ -32,18 +33,62 @@ var (
 	btnExportDB       = configurationMenu.Text("📬 Export DB")
 )
 
+var availableCommands = []string{
+	"/help",
+	"/balances",
+	"/last_jumps",
+	"/next_jump",
+	"/new_chart",
+	"/chart COIN1/COIN2 3",
+	"/chart COIN1,COIN2,COIN3 3",
+	"/export_db",
+	"/reload_config",
+	"/live_config",
+	"/config_file",
+	"/list_coins",
+	"/edit_coins COIN1,COIN2,COIN3",
+}
+
 func (p *Handlers) InitMenu(ctx context.Context) {
+	p.TelegramClient.CreateHandler("/help", p.Help)
+
+	p.TelegramClient.CreateHandler(&btnBackToMainMenu, p.BackToMainMenu)
+
+	p.TelegramClient.CreateHandler("/balances", p.ShowBalances)
 	p.TelegramClient.CreateHandler(&btnBalance, p.ShowBalances)
+	p.TelegramClient.CreateHandler("/last_jumps", p.LastTenJumps)
 	p.TelegramClient.CreateHandler(&btnLast10Jumps, p.LastTenJumps)
+	p.TelegramClient.CreateHandler("/next_jump", p.NextJump)
 	p.TelegramClient.CreateHandler(&btnNextJump, p.NextJump)
 
-	p.Configuration(ctx)
-	p.TelegramClient.CreateHandler(&btnBackToMainMenu, p.BackToMainMenu)
-	p.TelegramClient.CreateHandler(&btnExportDB, p.ExportDB)
 	p.TelegramClient.CreateHandler(&btnChart, p.ChartMenu)
 	p.TelegramClient.CreateHandler(&btnNewChart, p.NewChart)
 	p.TelegramClient.CreateHandler("/new_chart", p.ValidateNewChart)
 	p.TelegramClient.CreateHandler("/chart", p.GenerateChart)
+
+	// Configuration menu
+	p.TelegramClient.CreateHandler(&btnConfiguration, func(c telebot.Context) error {
+		return c.Send("What do you want to do ?", configurationMenu)
+	})
+	p.TelegramClient.CreateHandler("/export_db", p.ExportDB)
+	p.TelegramClient.CreateHandler(&btnExportDB, p.ExportDB)
+	p.TelegramClient.CreateHandler("/reload_config", p.ReloadConfigFile)
+	p.TelegramClient.CreateHandler(&btnReloadConfig, p.ReloadConfigFile)
+	p.TelegramClient.CreateHandler("/live_config", p.ShowLiveConfig)
+	p.TelegramClient.CreateHandler(&btnShowLiveConfig, p.ShowLiveConfig)
+	p.TelegramClient.CreateHandler("/config_file", p.ShowConfigFile)
+	p.TelegramClient.CreateHandler(&btnShowConfigFile, p.ShowConfigFile)
+	p.TelegramClient.CreateHandler("/list_coins", p.ListCoins)
+	p.TelegramClient.CreateHandler(&btnListCoins, p.ListCoins)
+	p.TelegramClient.CreateHandler(&btnEditCoins, p.EditCoins)
+	p.TelegramClient.CreateHandler("/edit_coins", p.ValidateCoinEdit)
+
+	// Notifications menu
+	p.TelegramClient.CreateHandler(&btnNotification, p.Notification)
+	p.NotificationDebug(ctx)
+	p.NotificationWarn(ctx)
+	p.NotificationInfo(ctx)
+	p.NotificationError(ctx)
 
 	// Setup menus
 	mainMenu.Reply(
@@ -64,6 +109,16 @@ func (p *Handlers) InitMenu(ctx context.Context) {
 	p.TelegramClient.CreateHandler("/menu", func(c telebot.Context) error {
 		return c.Send("What do you want to do ?", mainMenu)
 	})
+}
+
+func (p *Handlers) Help(c telebot.Context) error {
+	parts := []string{
+		"Available commands are:",
+	}
+
+	parts = append(parts, availableCommands...)
+
+	return c.Send(strings.Join(parts, "\n"), telebot.ModeHTML)
 }
 
 func (p *Handlers) BackToMainMenu(c telebot.Context) error {

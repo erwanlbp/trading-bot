@@ -15,15 +15,8 @@ var (
 	btnError         = notificationMenu.Text("🚨 Error")
 )
 
-func (p *Handlers) Notification(ctx context.Context) {
-	p.NotificationDebug(ctx)
-	p.NotificationWarn(ctx)
-	p.NotificationInfo(ctx)
-	p.NotificationError(ctx)
-
-	p.TelegramClient.CreateHandler(&btnNotification, func(c telebot.Context) error {
-		return c.Send(fmt.Sprintf("Current notification level : %s. Select new one to update it", p.Conf.NotificationLevel), notificationMenu)
-	})
+func (p *Handlers) Notification(c telebot.Context) error {
+	return c.Send(fmt.Sprintf("Current notification level : %s. Select new one to update it", p.Conf.NotificationLevel), notificationMenu)
 }
 
 func (p *Handlers) NotificationDebug(ctx context.Context) {

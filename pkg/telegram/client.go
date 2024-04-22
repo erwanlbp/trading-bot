@@ -32,6 +32,9 @@ func NewClient(ctx context.Context, l *log.Logger, cf *configfile.ConfigFile) (*
 			Timeout:        10 * time.Second,
 			AllowedUpdates: []string{"message", "chosen_inline_result", "inline_query"},
 		},
+		OnError: func(err error, ctx telebot.Context) {
+			l.Logger.Error("Error in bot", zap.Error(err))
+		},
 	}
 
 	b, err := telebot.NewBot(pref)
