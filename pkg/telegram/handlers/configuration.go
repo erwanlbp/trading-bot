@@ -84,7 +84,7 @@ func (p *Handlers) ListCoins(c telebot.Context) error {
 
 func (p *Handlers) EditCoins(c telebot.Context) error {
 	var messageParts []string = []string{
-		"Copy and paste the code",
+		"Copy and paste the command",
 		"Edit the coins and send it to validate",
 		"Or ignore this message to do nothing",
 	}
@@ -93,7 +93,7 @@ func (p *Handlers) EditCoins(c telebot.Context) error {
 	sort.Strings(coinsSlice)
 	messageParts = append(messageParts, fmt.Sprintf("`/edit_coins %s`", strings.Join(coinsSlice, " ")))
 
-	return c.Send(strings.Join(messageParts, "\n"), telebot.RemoveKeyboard, mainMenu)
+	return c.Send(strings.Join(messageParts, "\n"), telebot.RemoveKeyboard, configurationMenu)
 }
 
 func (p *Handlers) ValidateCoinEdit(c telebot.Context) error {

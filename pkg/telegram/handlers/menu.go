@@ -26,6 +26,7 @@ var (
 	configurationMenu = &telebot.ReplyMarkup{ResizeKeyboard: true}
 	btnListCoins      = configurationMenu.Text("👛 List coins")
 	btnEditCoins      = configurationMenu.Text("⛏️ Edit coins")
+	btnEditJump       = configurationMenu.Text("🦘 Edit Jump")
 	btnNotification   = configurationMenu.Text("🔔️ Notification")
 	btnReloadConfig   = configurationMenu.Text("♻️ Reload config.yaml")
 	btnShowConfigFile = configurationMenu.Text("👀 Show config.yaml")
@@ -47,6 +48,7 @@ var availableCommands = []string{
 	"/config_file",
 	"/list_coins",
 	"/edit_coins COIN1,COIN2,COIN3",
+	"/edit_jump when:3 decrease:0.1 after:1h min:0.1",
 }
 
 func (p *Handlers) InitMenu(ctx context.Context) {
@@ -82,6 +84,8 @@ func (p *Handlers) InitMenu(ctx context.Context) {
 	p.TelegramClient.CreateHandler(&btnListCoins, p.ListCoins)
 	p.TelegramClient.CreateHandler(&btnEditCoins, p.EditCoins)
 	p.TelegramClient.CreateHandler("/edit_coins", p.ValidateCoinEdit)
+	p.TelegramClient.CreateHandler(&btnEditJump, p.EditJump)
+	p.TelegramClient.CreateHandler("/edit_jump", p.ValidateJumpEdit)
 
 	// Notifications menu
 	p.TelegramClient.CreateHandler(&btnNotification, p.Notification)
@@ -97,9 +101,10 @@ func (p *Handlers) InitMenu(ctx context.Context) {
 		mainMenu.Row(btnConfiguration),
 	)
 	configurationMenu.Reply(
-		configurationMenu.Row(btnListCoins, btnEditCoins, btnNotification),
-		configurationMenu.Row(btnShowLiveConfig, btnShowConfigFile, btnReloadConfig),
-		configurationMenu.Row(btnExportDB, btnBackToMainMenu),
+		configurationMenu.Row(btnEditCoins, btnListCoins),
+		configurationMenu.Row(btnEditJump, btnReloadConfig),
+		configurationMenu.Row(btnShowLiveConfig, btnShowConfigFile),
+		configurationMenu.Row(btnNotification, btnExportDB, btnBackToMainMenu),
 	)
 	notificationMenu.Reply(
 		notificationMenu.Row(btnDebug, btnInfo, btnWarn, btnError),
