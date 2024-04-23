@@ -8,6 +8,7 @@ import (
 	"github.com/shopspring/decimal"
 	"gopkg.in/telebot.v3"
 
+	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 	"github.com/erwanlbp/trading-bot/pkg/model"
 	"github.com/erwanlbp/trading-bot/pkg/repository"
 	"github.com/erwanlbp/trading-bot/pkg/telegram"
@@ -54,4 +55,85 @@ func (p *Handlers) LastTenJumps(c telebot.Context) error {
 	})
 
 	return c.Send(telegram.FormatForMD(msg))
+}
+
+func (p *Handlers) EditJump(c telebot.Context) error {
+	var messageParts []string = []string{
+		"Copy and paste the command",
+		"Edit the config and send it to validate",
+		"Or ignore this message to do nothing",
+	}
+
+	jump := p.Conf.Jump
+
+	messageParts = append(messageParts, fmt.Sprintf(
+		"`/edit_jump when:%s decrease:%s after:%s min:%s`",
+		jump.WhenGain, jump.DecreaseBy, jump.After, jump.Min,
+	))
+
+	return c.Send(strings.Join(messageParts, "\n"), telebot.RemoveKeyboard, configurationMenu)
+}
+
+func (p *Handlers) ValidateJumpEdit(c telebot.Context) error {
+
+	var jumpConf configfile.Jump = util.Copy(p.Conf.Jump)
+
+	parts := c.Args()
+
+	for _, part := range parts {
+		splitted := strings.Split(part, ":")
+		if len(splitted) != 2 {
+			continue
+		}
+		switch arg := splitted[1]; splitted[0] {
+		case "when":
+			val, err := decimal.NewFromString(arg)
+			if err != nil {
+				return c.Send(fmt.Sprintf("couldn't parse 'when' (%s) argument: %s", arg, err.Error()))
+			}
+			jumpConf.WhenGain = val
+		case "decrease":
+			val, err := decimal.NewFromString(arg)
+			if err != nil {
+				return c.Send(fmt.Sprintf("couldn't parse 'decrease' (%s) argument: %s", arg, err.Error()))
+			}
+			jumpConf.DecreaseBy = val
+		case "after":
+			val, err := time.ParseDuration(arg)
+			if err != nil {
+				return c.Send(fmt.Sprintf("couldn't parse 'after' (%s) argument: %s", arg, err.Error()))
+			}
+			jumpConf.After = val
+		case "min":
+			val, err := decimal.NewFromString(arg)
+			if err != nil {
+				return c.Send(fmt.Sprintf("couldn't parse 'min' (%s) argument: %s", arg, err.Error()))
+			}
+			jumpConf.Min = val
+		default:
+			continue
+		}
+	}
+
+	configFile, err := configfile.ParseConfigFile()
+	if err != nil {
+		return c.Send(fmt.Sprintf("Failed to parse config.yaml: %s", err.Error()))
+	}
+
+	if jumpConf == configFile.Jump {
+		return c.Send("Nothing to change with config.yaml file content")
+	}
+
+	if err := configfile.CopyFileToBackup(); err != nil {
+		return c.Send("Failed to backup the config.yaml: " + err.Error())
+	}
+
+	newConf := util.Copy(*p.Conf)
+	newConf.Jump = jumpConf
+
+	if err := newConf.SaveToFile(); err != nil {
+		return c.Send("Failed to save conf to file: " + err.Error())
+	}
+
+	return c.Send("Saved jump config.\n⚠️*You'll need to reload the config file for it to be effective*⚠️\nNew conf is:\n"+PrepareConfContentForMessage(newConf), mainMenu)
 }
