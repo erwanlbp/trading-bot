@@ -48,6 +48,7 @@ var availableCommands = []string{
 	"/config_file",
 	"/list_coins",
 	"/edit_coins COIN1,COIN2,COIN3",
+	"/edit_jump when:3 decrease:0.1 after:1h min:0.1",
 }
 
 func (p *Handlers) InitMenu(ctx context.Context) {
