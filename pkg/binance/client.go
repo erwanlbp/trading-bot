@@ -3,6 +3,7 @@ package binance
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/adshao/go-binance/v2"
@@ -26,7 +27,7 @@ type Client struct {
 	EventBus        *eventbus.Bus
 	SymbolBlackList SymbolBlackListGetter
 
-	tradeInProgress bool
+	tradeInProgress atomic.Bool
 
 	coinInfosRefresher *refresher.Refresher[map[string]binance.Symbol]
 }

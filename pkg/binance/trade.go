@@ -25,17 +25,17 @@ func (c *Client) Buy(ctx context.Context, coin, stableCoin string) (OrderResult,
 //
 // ⚠️ Don't go concurrently too hard on this func, it's not concurrent safe, but that should be ok for our needs
 func (c *Client) TradeLock() (func(), error) {
-	if c.tradeInProgress {
+	if c.tradeInProgress.Load() {
 		return nil, fmt.Errorf("Trade is in progress")
 	}
-	c.tradeInProgress = true
+	c.tradeInProgress.Store(true)
 	return func() {
-		c.tradeInProgress = false
+		c.tradeInProgress.Store(false)
 	}, nil
 }
 
 func (c *Client) IsTradeInProgress() bool {
-	return c.tradeInProgress
+	return c.tradeInProgress.Load()
 }
 
 // Do not call this one directly, use .Buy() or .Sell()
