@@ -35,9 +35,9 @@ func (p *Cleaner) Start(ctx context.Context) {
 		var ids []string
 
 		ids = append(ids,
-			Scheduler.Every().Hour(6).Minute(15).Second(0).Do(p.CleanPairHistory),
-			Scheduler.Every().Hour(6).Minute(0).Second(0).Do(p.CleanCoinPrice),
-			Scheduler.Every().Hour(10).Minute(0).Second(0).Do(p.VacuumDB),
+			Scheduler.Every().Hour(6).Minute(15).Second(15).Do(p.CleanPairHistory),
+			Scheduler.Every().Hour(6).Minute(0).Second(15).Do(p.CleanCoinPrice),
+			Scheduler.Every().Hour(10).Minute(0).Second(15).Do(p.VacuumDB),
 		)
 
 		// If ctx is canceled, we'll stop the job
