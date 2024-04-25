@@ -15,6 +15,7 @@ var (
 	btnBalance       = mainMenu.Text("⚖️ Balances")
 	btnLast10Jumps   = mainMenu.Text("🦘 Last jumps")
 	btnNextJump      = mainMenu.Text("⤴️ Next jump")
+	btnBestJump      = mainMenu.Text("⭐️ Best jump")
 	btnConfiguration = mainMenu.Text("⚙️ Configuration")
 	btnChart         = mainMenu.Text("📊 Chart")
 
@@ -39,6 +40,7 @@ var availableCommands = []string{
 	"/balances",
 	"/last_jumps",
 	"/next_jump",
+	"/best_jump",
 	"/new_chart",
 	"/chart COIN1/COIN2 3",
 	"/chart COIN1,COIN2,COIN3 3",
@@ -62,6 +64,8 @@ func (p *Handlers) InitMenu(ctx context.Context) {
 	p.TelegramClient.CreateHandler(&btnLast10Jumps, p.LastTenJumps)
 	p.TelegramClient.CreateHandler("/next_jump", p.NextJump)
 	p.TelegramClient.CreateHandler(&btnNextJump, p.NextJump)
+	p.TelegramClient.CreateHandler("/best_jump", p.BestJump)
+	p.TelegramClient.CreateHandler(&btnBestJump, p.BestJump)
 
 	p.TelegramClient.CreateHandler(&btnChart, p.ChartMenu)
 	p.TelegramClient.CreateHandler(&btnNewChart, p.NewChart)
@@ -97,8 +101,8 @@ func (p *Handlers) InitMenu(ctx context.Context) {
 	// Setup menus
 	mainMenu.Reply(
 		mainMenu.Row(btnBalance, btnLast10Jumps),
-		mainMenu.Row(btnNextJump, btnChart),
-		mainMenu.Row(btnConfiguration),
+		mainMenu.Row(btnNextJump, btnBestJump),
+		mainMenu.Row(btnChart, btnConfiguration),
 	)
 	configurationMenu.Reply(
 		configurationMenu.Row(btnEditCoins, btnListCoins),

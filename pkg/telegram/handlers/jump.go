@@ -16,20 +16,44 @@ import (
 )
 
 func (p *Handlers) NextJump(c telebot.Context) error {
-	diffs, err := p.Repository.GetDiff(repository.OrderBy("diff desc"))
+
+	cc, _, err := p.Repository.GetCurrentCoin()
 	if err != nil {
-		return c.Send("Error while get next jump info, please retry")
+		return c.Send("Failed getting current coin: " + err.Error())
+	}
+
+	diffs, err := p.Repository.GetDiff(repository.FromCoin(cc.Coin), repository.OrderBy("diff desc"), repository.Limit(p.Conf.Telegram.Handlers.NbDiffDisplayed))
+	if err != nil {
+		return c.Send("Error while getting next jump info, please retry: " + err.Error())
 	}
 	if len(diffs) == 0 {
 		return c.Send("No diff found")
 	}
 
-	chunks := util.Chunk(diffs, p.Conf.Telegram.Handlers.NbDiffDisplayed)
-	diffsToPrint := chunks[0]
+	var ts string
+	msg := util.ToASCIITable(diffs, []string{"Pair", "Ratio diff"}, nil, func(diff model.Diff) []string {
+		ts = fmt.Sprintf("Jump at : %s\nNeeds gain of %s\n", diff.Timestamp.Format(time.DateTime), diff.NeededDiff.Mul(decimal.NewFromInt(100)).StringFixed(1))
+		return []string{diff.LogSymbol(), diff.Diff.Mul(decimal.NewFromInt(100)).StringFixed(1) + " %"}
+	})
+
+	parts := []string{ts, telegram.FormatForMD(msg)}
+
+	return c.Send(strings.Join(parts, "\n"))
+}
+
+func (p *Handlers) BestJump(c telebot.Context) error {
+
+	diffs, err := p.Repository.GetDiff(repository.OrderBy("diff desc"), repository.Limit(p.Conf.Telegram.Handlers.NbDiffDisplayed))
+	if err != nil {
+		return c.Send("Error while getting best jumps: " + err.Error())
+	}
+	if len(diffs) == 0 {
+		return c.Send("No diff found")
+	}
 
 	var ts string
-	msg := util.ToASCIITable(diffsToPrint, []string{"Pair", "Ratio diff"}, nil, func(diff model.Diff) []string {
-		ts = fmt.Sprintf("Diff at : %s\nNeeds gain of %s\n", diff.Timestamp.Format(time.DateTime), diff.NeededDiff.Mul(decimal.NewFromInt(100)).StringFixed(1))
+	msg := util.ToASCIITable(diffs, []string{"Pair", "Ratio diff"}, nil, func(diff model.Diff) []string {
+		ts = fmt.Sprintf("Best jump at : %s\nNeeds gain of %s\n", diff.Timestamp.Format(time.DateTime), diff.NeededDiff.Mul(decimal.NewFromInt(100)).StringFixed(1))
 		return []string{diff.LogSymbol(), diff.Diff.Mul(decimal.NewFromInt(100)).StringFixed(1) + " %"}
 	})
 

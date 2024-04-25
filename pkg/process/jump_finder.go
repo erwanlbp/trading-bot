@@ -39,8 +39,6 @@ func (p *JumpFinder) Start(ctx context.Context) {
 
 	sub := p.EventBus.Subscribe(eventbus.EventCoinsPricesFetched)
 
-	// TODO Never reached during trade in progress because handling is blocking subscription
-
 	go sub.Handler(ctx, p.FindJump)
 }
 
@@ -83,13 +81,6 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 		return
 	}
 
-	var pairsFromCurrentCoin []model.PairWithTickerRatio
-	for _, p := range pairsRatio {
-		if p.Pair.FromCoin == currentCoin.Coin {
-			pairsFromCurrentCoin = append(pairsFromCurrentCoin, p)
-		}
-	}
-
 	// Find best pair (if any) to jump
 
 	wantedGain := decimal.NewFromInt(1).Add(p.ConfigFile.Jump.GetNeededGain(currentCoin.Timestamp))
@@ -103,7 +94,7 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 
 	var bestJump *BJ
 	var computedDiff []model.Diff
-	for _, pairRatio := range pairsFromCurrentCoin {
+	for _, pairRatio := range pairsRatio {
 
 		lastPairRatio := pairRatio.Pair.LastJumpRatio
 
@@ -119,7 +110,7 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 				logger.Error(fmt.Sprintf("No default ratio found for pair %s, ignoring", pairRatio.Pair.LogSymbol()))
 				continue
 			}
-			logger.Debug(fmt.Sprintf("Pair %s doesn't have a jump ratio yet, defaulting to last 15min avg %s", pairRatio.Pair.LogSymbol(), defaultRatio))
+			logger.Info(fmt.Sprintf("Pair %s doesn't have a jump ratio yet, defaulting to last 15min avg %s", pairRatio.Pair.LogSymbol(), defaultRatio))
 			lastPairRatio = defaultRatio
 		}
 
@@ -137,6 +128,10 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 			Diff:       diff,
 			NeededDiff: wantedGain,
 		})
+
+		if pairRatio.Pair.FromCoin != currentCoin.Coin {
+			continue
+		}
 
 		if diff.LessThan(wantedGain) {
 			logger.Debug(fmt.Sprintf("❌ Pair %s is not good", pairRatio.Pair.LogSymbol()), zap.String("current_ratio", pairRatio.Ratio.String()), zap.String("last_jump_ratio", lastPairRatio.String()), zap.String("diff", diff.String()), zap.String("fee", feeMultiplier.String()), zap.String("threshold", wantedGain.String()))

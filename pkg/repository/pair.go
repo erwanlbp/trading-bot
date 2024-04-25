@@ -28,6 +28,12 @@ func (r *Repository) GetPairs(filters ...QueryFilter) (map[string]model.Pair, er
 	return util.AsMap(pairs, func(p model.Pair) string { return util.Symbol(p.FromCoin, p.ToCoin) }), nil
 }
 
+func FromCoin(coin string) QueryFilter {
+	return func(d *gorm.DB) *gorm.DB {
+		return d.Where("from_coin = ?", coin)
+	}
+}
+
 func Pair(from, to string) QueryFilter {
 	return func(d *gorm.DB) *gorm.DB {
 		return d.Where("from_coin = ?", from).Where("to_coin = ?", to)
