@@ -76,6 +76,8 @@ func main() {
 	if ok, _ := strconv.ParseBool(os.Getenv("NO_PRICE_GETTER")); !ok {
 		logger.Debug("Starting coins price getter process")
 		conf.ProcessPriceGetter.Start(ctx)
+	} else {
+		logger.Warn("Will not start coins price getter process")
 	}
 
 	logger.Debug("Starting cleaner process")

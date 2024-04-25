@@ -62,17 +62,24 @@ func (p *Handlers) ShowBalances(c telebot.Context) error {
 		}
 	}
 
+	p.Logger.Warn(util.ToJSON(altWithCoinPrices))
+	p.Logger.Warn(util.ToJSON(totalAlt[constant.BTC]))
+
 	for _, altCoin := range altCoinList {
 		headers := []string{"Coin", "Value", altCoin}
 		footer := generateFooter(len(headers), altCoin, totalAlt[altCoin])
+		p.Logger.Warn(util.ToJSON(footer))
 		messagePaginated[altCoin] = util.ToASCIITable(altWithCoinPrices[altCoin], headers, footer, func(line balanceDisplayLine) []string {
 			value := line.AltValue.String()
-			if altCoin == "USDT" {
+			if altCoin == constant.USDT {
 				value = line.AltValue.StringFixed(2)
 			}
 			return []string{line.Coin, line.Value.String(), value}
 		})
 	}
+
+	p.Logger.Warn(util.ToJSON(messagePaginated[constant.USDT]))
+	p.Logger.Warn(util.ToJSON(messagePaginated[constant.BTC]))
 
 	buttons := p.CreatePaginatedHandlers(messagePaginated, constant.USDT, selector)
 	selector.Inline(selector.Row(buttons...))
@@ -82,6 +89,13 @@ func (p *Handlers) ShowBalances(c telebot.Context) error {
 func getAltValueByCoin(prices map[string]binance.CoinPrice, balance map[string]decimal.Decimal) (map[string][]binance.CoinPrice, map[string]decimal.Decimal) {
 	altValuesByCoin := map[string][]binance.CoinPrice{}
 	totalAlt := map[string]decimal.Decimal{}
+
+	prices["BTCBTC"] = binance.CoinPrice{
+		Coin:    "BTC",
+		AltCoin: "BTC",
+		Price:   decimal.NewFromInt(1),
+	}
+
 	for _, coinPrices := range prices {
 		coin := coinPrices.Coin
 		balanceValue := balance[coin].Mul(coinPrices.Price)
@@ -108,8 +122,6 @@ func generateFooter(headerLen int, altCoin string, total decimal.Decimal) []stri
 		footer = append(footer, "≈0")
 	} else if altCoin == constant.USDT {
 		footer = append(footer, total.Round(2).String())
-	} else if altCoin == constant.BTC {
-		footer = append(footer, total.Round(6).String())
 	} else {
 		footer = append(footer, total.Round(4).String())
 	}
