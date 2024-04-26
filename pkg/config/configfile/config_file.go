@@ -39,8 +39,7 @@ type ConfigFile struct {
 		Token     string `yaml:"token,omitempty"`
 		ChannelID string `yaml:"channel_id,omitempty"`
 		Handlers  struct {
-			NbBalancesDisplayed int `yaml:"nb_balances_displayed"`
-			NbDiffDisplayed     int `yaml:"nb_diff_displayed"`
+			NbDiffDisplayed int `yaml:"nb_diff_displayed"`
 		} `yaml:"handlers"`
 	} `yaml:"telegram"`
 
