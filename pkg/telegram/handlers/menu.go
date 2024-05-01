@@ -18,6 +18,12 @@ var (
 	btnConfiguration = mainMenu.Text("⚙️ Configuration")
 	btnChart         = mainMenu.Text("📊 Chart")
 
+	// Balance menu
+	balanceMenu       = &telebot.ReplyMarkup{ResizeKeyboard: true}
+	btnBalanceUSDT    = mainMenu.Text("💲 USDT")
+	btnBalanceBTC     = mainMenu.Text("₿ BTC")
+	btnBalanceHistory = mainMenu.Text("📊 History")
+
 	// Chart menu
 	chartMenu   = &telebot.ReplyMarkup{ResizeKeyboard: true}
 	btnNewChart = mainMenu.Text("➕ New")
@@ -36,7 +42,7 @@ var (
 
 var availableCommands = []string{
 	"/help",
-	"/balances",
+	"/balances ALT",
 	"/last_jumps",
 	"/next_jump",
 	"/new_chart",
@@ -56,8 +62,15 @@ func (p *Handlers) InitMenu(ctx context.Context) {
 
 	p.TelegramClient.CreateHandler(&btnBackToMainMenu, p.BackToMainMenu)
 
-	p.TelegramClient.CreateHandler("/balances", p.ShowBalances)
-	p.TelegramClient.CreateHandler(&btnBalance, p.ShowBalances)
+	// Balance Menu
+	//p.TelegramClient.CreateHandler("/balances", p.ShowBalances)
+	p.TelegramClient.CreateHandler(&btnBalance, func(c telebot.Context) error {
+		return c.Send("What do you want to do ?", balanceMenu)
+	})
+	p.TelegramClient.CreateHandler("/balances", p.ShowBalancesWithArg)
+	p.TelegramClient.CreateHandler(&btnBalanceUSDT, p.ShowUsdtBalances)
+	p.TelegramClient.CreateHandler(&btnBalanceBTC, p.ShowBtcBalances)
+
 	p.TelegramClient.CreateHandler("/last_jumps", p.LastTenJumps)
 	p.TelegramClient.CreateHandler(&btnLast10Jumps, p.LastTenJumps)
 	p.TelegramClient.CreateHandler("/next_jump", p.NextJump)
@@ -99,6 +112,10 @@ func (p *Handlers) InitMenu(ctx context.Context) {
 		mainMenu.Row(btnBalance, btnLast10Jumps),
 		mainMenu.Row(btnNextJump, btnChart),
 		mainMenu.Row(btnConfiguration),
+	)
+	balanceMenu.Reply(
+		balanceMenu.Row(btnBalanceUSDT, btnBalanceBTC, btnBalanceHistory),
+		balanceMenu.Row(btnBackToMainMenu),
 	)
 	configurationMenu.Reply(
 		configurationMenu.Row(btnEditCoins, btnListCoins),

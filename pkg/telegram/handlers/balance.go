@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/shopspring/decimal"
@@ -20,7 +21,25 @@ type balanceDisplayLine struct {
 	AltValue decimal.Decimal
 }
 
-func (p *Handlers) ShowBalances(c telebot.Context) error {
+func (p *Handlers) ShowBtcBalances(c telebot.Context) error {
+	return p.ShowBalances(c, constant.BTC)
+}
+
+func (p *Handlers) ShowUsdtBalances(c telebot.Context) error {
+	return p.ShowBalances(c, constant.USDT)
+}
+
+func (p *Handlers) ShowBalancesWithArg(c telebot.Context) error {
+	alt := strings.Split(c.Text(), " ")
+
+	if len(alt) != 2 {
+		return c.Send("You can only enter one alt coin")
+	}
+
+	return p.ShowBalances(c, strings.ToUpper(alt[1]))
+}
+
+func (p *Handlers) ShowBalances(c telebot.Context, alt string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -36,10 +55,8 @@ func (p *Handlers) ShowBalances(c telebot.Context) error {
 			balancePositiveCoin = append(balancePositiveCoin, s)
 		}
 	}
-	sort.Strings(balancePositiveCoin)
 
-	altCoinList := constant.AltCoins // TODO put in config file ?
-
+	altCoinList := []string{alt}
 	prices, err := p.BinanceClient.GetCoinsPrice(ctx, balancePositiveCoin, altCoinList)
 	if err != nil {
 		return c.Send("Error fetching coin price, please retry: " + err.Error())
@@ -47,11 +64,15 @@ func (p *Handlers) ShowBalances(c telebot.Context) error {
 
 	altValuesByCoin, totalAlt := getAltValueByCoin(prices, balances)
 
-	// Build table
-	messagePaginated := map[interface{}]string{}
+	// Sort by balances value desc
+	keys := util.Keys(altValuesByCoin)
+	sort.SliceStable(keys, func(i, j int) bool {
+		return altValuesByCoin[keys[i]][0].Price.GreaterThan(altValuesByCoin[keys[j]][0].Price)
+	})
 
+	// Build table
 	altWithCoinPrices := map[string][]balanceDisplayLine{}
-	for _, coin := range balancePositiveCoin {
+	for _, coin := range keys {
 		for _, altPrices := range altValuesByCoin[coin] {
 			line := balanceDisplayLine{
 				Coin:     coin,
@@ -62,28 +83,17 @@ func (p *Handlers) ShowBalances(c telebot.Context) error {
 		}
 	}
 
-	p.Logger.Warn(util.ToJSON(altWithCoinPrices))
-	p.Logger.Warn(util.ToJSON(totalAlt[constant.BTC]))
+	headers := []string{"Coin", "Value", alt}
+	footer := generateFooter(len(headers), alt, totalAlt[alt])
+	message := util.ToASCIITable(altWithCoinPrices[alt], headers, footer, func(line balanceDisplayLine) []string {
+		value := line.AltValue.String()
+		if alt == constant.USDT {
+			value = line.AltValue.StringFixed(2)
+		}
+		return []string{line.Coin, line.Value.String(), value}
+	})
 
-	for _, altCoin := range altCoinList {
-		headers := []string{"Coin", "Value", altCoin}
-		footer := generateFooter(len(headers), altCoin, totalAlt[altCoin])
-		p.Logger.Warn(util.ToJSON(footer))
-		messagePaginated[altCoin] = util.ToASCIITable(altWithCoinPrices[altCoin], headers, footer, func(line balanceDisplayLine) []string {
-			value := line.AltValue.String()
-			if altCoin == constant.USDT {
-				value = line.AltValue.StringFixed(2)
-			}
-			return []string{line.Coin, line.Value.String(), value}
-		})
-	}
-
-	p.Logger.Warn(util.ToJSON(messagePaginated[constant.USDT]))
-	p.Logger.Warn(util.ToJSON(messagePaginated[constant.BTC]))
-
-	buttons := p.CreatePaginatedHandlers(messagePaginated, constant.USDT, selector)
-	selector.Inline(selector.Row(buttons...))
-	return c.Send(telegram.FormatForMD(messagePaginated[constant.USDT]), selector)
+	return c.Send(telegram.FormatForMD(message), selector)
 }
 
 func getAltValueByCoin(prices map[string]binance.CoinPrice, balance map[string]decimal.Decimal) (map[string][]binance.CoinPrice, map[string]decimal.Decimal) {
