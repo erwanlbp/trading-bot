@@ -27,5 +27,6 @@ func (d *DB) MigrateSchema() error {
 		model.Diff{},
 		model.Chart{},
 		model.BlacklistedSymbol{},
+		model.BalanceHistory{},
 	)
 }

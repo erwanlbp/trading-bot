@@ -44,6 +44,7 @@ var (
 var availableCommands = []string{
 	"/help",
 	"/balances ALT",
+	"/balances_charts",
 	"/last_jumps",
 	"/next_jump",
 	"/best_jump",
@@ -65,13 +66,14 @@ func (p *Handlers) InitMenu(ctx context.Context) {
 	p.TelegramClient.CreateHandler(&btnBackToMainMenu, p.BackToMainMenu)
 
 	// Balance Menu
-	//p.TelegramClient.CreateHandler("/balances", p.ShowBalances)
 	p.TelegramClient.CreateHandler(&btnBalance, func(c telebot.Context) error {
 		return c.Send("What do you want to do ?", balanceMenu)
 	})
 	p.TelegramClient.CreateHandler("/balances", p.ShowBalancesWithArg)
 	p.TelegramClient.CreateHandler(&btnBalanceUSDT, p.ShowUsdtBalances)
 	p.TelegramClient.CreateHandler(&btnBalanceBTC, p.ShowBtcBalances)
+	p.TelegramClient.CreateHandler("/balances_charts", p.ShowBalancesChart)
+	p.TelegramClient.CreateHandler(&btnBalanceHistory, p.ShowBalancesChart)
 
 	p.TelegramClient.CreateHandler("/last_jumps", p.LastTenJumps)
 	p.TelegramClient.CreateHandler(&btnLast10Jumps, p.LastTenJumps)
