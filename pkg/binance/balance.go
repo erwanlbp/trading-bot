@@ -3,6 +3,7 @@ package binance
 import (
 	"context"
 	"fmt"
+
 	"github.com/shopspring/decimal"
 
 	"github.com/erwanlbp/trading-bot/pkg/util"
@@ -52,7 +53,7 @@ func (c *Client) GetBalanceValue(ctx context.Context, altCoins []string) (map[st
 
 	res := map[string]decimal.Decimal{}
 	for _, price := range prices {
-		res[price.AltCoin] = res[price.AltCoin].Add(price.Price)
+		res[price.AltCoin] = res[price.AltCoin].Add(price.Price.Mul(balances[price.Coin]))
 	}
 
 	return res, nil

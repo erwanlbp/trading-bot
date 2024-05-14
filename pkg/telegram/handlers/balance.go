@@ -47,6 +47,10 @@ func (p *Handlers) ShowBalancesChart(c telebot.Context) error {
 		return c.Send("Failed to get balance history")
 	}
 
+	if len(history) < 2 {
+		return c.Send("Not enough points to generate a chart, try again in few hours")
+	}
+
 	var series = make(map[string]chart.ContinuousSeries)
 
 	for _, point := range history {
