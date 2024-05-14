@@ -235,6 +235,8 @@ func (p *JumpFinder) JumpTo(ctx context.Context, pair model.Pair) error {
 
 	p.Logger.Info(fmt.Sprintf("Will jump from %s to %s", pair.FromCoin, pair.ToCoin))
 
+	p.Binance.LogBalances(ctx)
+
 	// TODO Add case where the order was created but got timeout with no partial_filled
 	// TODO Add case where the order is partially filled but we won't have enough to do next order so we consider it canceled
 	sell, err := p.Binance.Sell(ctx, pair.FromCoin, p.ConfigFile.Bridge)
@@ -428,6 +430,8 @@ func (p *JumpFinder) UpdatePairsToCoinRatios(ctx context.Context, pair model.Pai
 	if _, err := p.Repository.SetCurrentCoin(pair.ToCoin, buy.Time()); err != nil {
 		return fmt.Errorf("failed to save current coin: %w", err)
 	}
+
+	p.Binance.LogBalances(ctx)
 
 	return nil
 }

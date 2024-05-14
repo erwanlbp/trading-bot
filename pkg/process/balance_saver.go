@@ -2,6 +2,7 @@ package process
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -12,10 +13,12 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/model"
 	"github.com/erwanlbp/trading-bot/pkg/repository"
+	"github.com/erwanlbp/trading-bot/pkg/util"
 	"github.com/prprprus/scheduler"
 )
 
 type BalanceSaver struct {
+	mtx           sync.RWMutex
 	Logger        *log.Logger
 	Repository    *repository.Repository
 	EventBus      *eventbus.Bus
@@ -65,6 +68,9 @@ func (p *BalanceSaver) SaveBalanceBus(ctx context.Context, _ eventbus.Event) {
 }
 
 func (p *BalanceSaver) SaveBalance(ctx context.Context) {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+
 	history, err := p.Repository.GetLastBalanceHistory()
 	if err != nil {
 		p.Logger.Error("failed getting last balance history", zap.Error(err))
@@ -72,7 +78,7 @@ func (p *BalanceSaver) SaveBalance(ctx context.Context) {
 	}
 
 	// Don't need to save if we jump last 24 hours
-	if history.Timestamp.After(time.Now().Add(time.Hour * -24)) {
+	if time.Since(history.Timestamp) > util.Day {
 		return
 	}
 
@@ -85,7 +91,7 @@ func (p *BalanceSaver) SaveBalance(ctx context.Context) {
 	balanceToSave := model.BalanceHistory{
 		BtcBalance:  value[constant.BTC],
 		UsdtBalance: value[constant.USDT],
-		Timestamp:   time.Now(),
+		Timestamp:   time.Now().UTC(),
 	}
 
 	if err := repository.SimpleUpsert(p.Repository.DB.DB, balanceToSave); err != nil {
