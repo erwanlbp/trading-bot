@@ -24,8 +24,12 @@ func (r *Repository) GetCharts(modifiers ...QueryFilter) ([]model.Chart, error) 
 }
 
 func (r *Repository) GetDefaultChartsWithBestDiff() ([]model.Chart, error) {
+	cc, _, err := r.GetCurrentCoin()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current coint: %w", err)
+	}
 
-	bestDiffs, err := r.GetDiff(OrderBy("diff desc"), Limit(1))
+	bestDiffs, err := r.GetDiff(OrderBy("diff desc"), FromCoin(cc.Coin), Limit(1))
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +41,6 @@ func (r *Repository) GetDefaultChartsWithBestDiff() ([]model.Chart, error) {
 		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 1", bestDiff.FromCoin, bestDiff.ToCoin)},
 		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 3", bestDiff.FromCoin, bestDiff.ToCoin)},
 		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 7", bestDiff.FromCoin, bestDiff.ToCoin)},
-		{Type: model.ChartTypeCoinPrice, Config: fmt.Sprintf("%s/%s 14", bestDiff.FromCoin, bestDiff.ToCoin)},
 	}, nil
 }
 

@@ -25,7 +25,6 @@ func (p *Handlers) ChartMenu(c telebot.Context) error {
 	// Default all coins charts
 	allCharts := []model.Chart{
 		model.DefaultCoinPriceChartAllCoin1Day,
-		model.DefaultCoinPriceChartAllCoin3Day,
 		model.DefaultCoinPriceChartAllCoin7Day,
 		model.DefaultCoinPriceChartAllCoin30Day,
 	}
@@ -96,7 +95,7 @@ func (p *Handlers) GenerateChart(c telebot.Context) error {
 
 	var chartType string
 	var data []ChartPoint
-	var thresholdLine decimal.Decimal
+	var thresholdLine, jumpThreshold decimal.Decimal
 
 	if strings.Contains(parts[0], "/") {
 		chartType = "Pair"
@@ -109,6 +108,14 @@ func (p *Handlers) GenerateChart(c telebot.Context) error {
 		}
 		pair := pairs[util.Symbol(pairCoins[0], pairCoins[1])]
 		thresholdLine = pair.LastJumpRatio
+
+		diffs, err := p.Repository.GetDiff(repository.FromCoin(pair.FromCoin), repository.ToCoin(pair.ToCoin))
+		if err != nil {
+			return c.Send("Failed to get the pair diff, try again later: "+err.Error(), chartMenu)
+		}
+		if len(diffs) > 0 {
+			jumpThreshold = diffs[0].NeededDiff.Mul(thresholdLine)
+		}
 
 		pairData, err := p.Repository.GetPairRatiosSince(pairCoins[0], pairCoins[1], time.Now().Add(time.Duration(-1*days)*util.Day))
 		if err != nil {
@@ -183,7 +190,10 @@ func (p *Handlers) GenerateChart(c telebot.Context) error {
 		// if len(minValue )> 1 {
 		// thresholdLine = thresholdLine.Sub(minValue[d.Serie]).Div(maxValue[d.Serie].Sub(minValue[d.Serie])).Mul(decimal.NewFromInt(100))
 		// }
-		finalSeries = append(finalSeries, &chart.LinearSeries{Name: "Threshold", XValues: []float64{minX, maxX}, InnerSeries: chart.LinearCoefficients(0, thresholdLine.InexactFloat64())})
+		finalSeries = append(finalSeries, &chart.LinearSeries{Name: "Last jump", XValues: []float64{minX, maxX}, InnerSeries: chart.LinearCoefficients(0, thresholdLine.InexactFloat64())})
+	}
+	if !jumpThreshold.IsZero() {
+		finalSeries = append(finalSeries, &chart.LinearSeries{Name: "Next jump", XValues: []float64{minX, maxX}, InnerSeries: chart.LinearCoefficients(0, jumpThreshold.InexactFloat64())})
 	}
 
 	graph := chart.Chart{
