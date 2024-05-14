@@ -114,7 +114,7 @@ func (p *Handlers) GenerateChart(c telebot.Context) error {
 			return c.Send("Failed to get the pair diff, try again later: "+err.Error(), chartMenu)
 		}
 		if len(diffs) > 0 {
-			jumpThreshold = diffs[0].NeededDiff
+			jumpThreshold = diffs[0].NeededDiff.Mul(thresholdLine)
 		}
 
 		pairData, err := p.Repository.GetPairRatiosSince(pairCoins[0], pairCoins[1], time.Now().Add(time.Duration(-1*days)*util.Day))
