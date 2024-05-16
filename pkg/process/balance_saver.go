@@ -18,7 +18,7 @@ import (
 )
 
 type BalanceSaver struct {
-	mtx           sync.RWMutex
+	mtx           sync.Mutex
 	Logger        *log.Logger
 	Repository    *repository.Repository
 	EventBus      *eventbus.Bus
