@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/shopspring/decimal"
+	"github.com/wcharczuk/go-chart/v2"
 	"gopkg.in/telebot.v3"
 
 	"github.com/erwanlbp/trading-bot/pkg/binance"
@@ -37,6 +39,68 @@ func (p *Handlers) ShowBalancesWithArg(c telebot.Context) error {
 	}
 
 	return p.ShowBalances(c, strings.ToUpper(alt[1]))
+}
+
+func (p *Handlers) ShowBalancesChart(c telebot.Context) error {
+	history, err := p.Repository.GetBalanceHistory()
+	if err != nil {
+		return c.Send("Failed to get balance history")
+	}
+
+	if len(history) < 2 {
+		return c.Send("Not enough points to generate a chart, try again in few hours")
+	}
+
+	var series = make(map[string]chart.ContinuousSeries)
+
+	for _, point := range history {
+		x := float64(point.Timestamp.UnixNano())
+
+		sUSDT, ok := series[constant.USDT]
+		if !ok {
+			sUSDT = chart.ContinuousSeries{Name: constant.USDT, XValueFormatter: chart.TimeDateValueFormatter}
+		}
+		sBTC, ok := series[constant.BTC]
+		if !ok {
+			sBTC = chart.ContinuousSeries{Name: constant.BTC, XValueFormatter: chart.TimeDateValueFormatter}
+		}
+
+		sUSDT.XValues = append(sUSDT.XValues, x)
+		sUSDT.YValues = append(sUSDT.YValues, point.UsdtBalance.InexactFloat64())
+
+		sBTC.XValues = append(sBTC.XValues, x)
+		sBTC.YValues = append(sBTC.YValues, point.BtcBalance.InexactFloat64())
+
+		series[constant.USDT] = sUSDT
+		series[constant.BTC] = sBTC
+	}
+
+	graphUSDT := chart.Chart{
+		Title:  "USDT balance history",
+		Series: append([]chart.Series{}, series[constant.USDT]),
+	}
+	graphBTC := chart.Chart{
+		Title:  "BTC balance history",
+		Series: append([]chart.Series{}, series[constant.BTC]),
+	}
+
+	graphUSDT.Elements = []chart.Renderable{chart.LegendThin(&graphUSDT)}
+	graphBTC.Elements = []chart.Renderable{chart.LegendThin(&graphBTC)}
+
+	buffer := bytes.NewBuffer([]byte{})
+	if err := graphUSDT.Render(chart.PNG, buffer); err != nil {
+		return c.Send("Failed generating usdt chart: " + err.Error())
+	}
+	if err := c.Send(&telebot.Photo{File: telebot.FromReader(buffer)}, balanceMenu); err != nil {
+		return c.Send("Failed generating usdt chart: " + err.Error())
+	}
+
+	buffer = bytes.NewBuffer([]byte{})
+	if err := graphBTC.Render(chart.PNG, buffer); err != nil {
+		return c.Send("Failed generating btc chart: " + err.Error())
+	}
+	res := &telebot.Photo{File: telebot.FromReader(buffer)}
+	return c.Send(res, balanceMenu)
 }
 
 func (p *Handlers) ShowBalances(c telebot.Context, alt string) error {

@@ -9,6 +9,7 @@ const (
 	EventCoinsPricesFetched    = "coins_prices_fetched"
 	EventFoundUnexistingSymbol = "found_unexisting_symbol"
 	SendNotification           = "send_notification"
+	SaveBalance                = "save_balance"
 )
 
 func GenerateEvent(eventName string, payload interface{}) Event {

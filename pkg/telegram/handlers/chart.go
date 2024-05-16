@@ -61,7 +61,7 @@ func (p *Handlers) ChartMenu(c telebot.Context) error {
 
 	response.Reply(rows...)
 
-	var message []string = []string{
+	var message = []string{
 		"Choose a chart in menu or type a command like ⬇️",
 		"`/chart COIN1/COIN2 3`",
 		"`/chart COIN1,COIN2,COIN3 1`",
@@ -141,8 +141,8 @@ func (p *Handlers) GenerateChart(c telebot.Context) error {
 		return c.Send("no price found")
 	}
 
-	var minValue map[string]decimal.Decimal = make(map[string]decimal.Decimal)
-	var maxValue map[string]decimal.Decimal = make(map[string]decimal.Decimal)
+	var minValue = make(map[string]decimal.Decimal)
+	var maxValue = make(map[string]decimal.Decimal)
 
 	for _, d := range data {
 		if min, ok := minValue[d.Serie]; !ok || d.Value.LessThan(min) {
@@ -161,7 +161,7 @@ func (p *Handlers) GenerateChart(c telebot.Context) error {
 		}
 	}
 
-	var series map[string]chart.ContinuousSeries = make(map[string]chart.ContinuousSeries)
+	var series = make(map[string]chart.ContinuousSeries)
 	var minX, maxX float64
 	for _, point := range data {
 		serie, ok := series[point.Serie]

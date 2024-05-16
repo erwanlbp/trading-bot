@@ -46,6 +46,7 @@ type Config struct {
 	TelegramHandlers         *handlers.Handlers
 	ProcessTelegramNotifier  *process.TelegramNotifier
 	ProcessSymbolBlacklister *process.SymbolBlacklister
+	BalanceSaver             *process.BalanceSaver
 }
 
 var _ globalconf.GlobalConfModifier = &Config{}
@@ -93,6 +94,7 @@ func Init(ctx context.Context) *Config {
 	conf.ProcessCleaner = process.NewCleaner(conf.Logger, conf.Repository, &conf)
 	conf.ProcessTelegramNotifier = process.NewTelegramNotifier(conf.Logger, conf.EventBus, conf.TelegramClient)
 	conf.TelegramHandlers = handlers.NewHandlers(conf.Logger, conf.ConfigFile, conf.TelegramClient, conf.BinanceClient, conf.Repository, &conf)
+	conf.BalanceSaver = process.NewBalanceSaver(conf.Logger, conf.Repository, conf.EventBus, conf.BinanceClient)
 
 	return &conf
 }

@@ -25,7 +25,11 @@ type JumpFinder struct {
 	ConfigFile *configfile.ConfigFile
 }
 
-func NewJumpFinder(l *log.Logger, r *repository.Repository, eb *eventbus.Bus, cf *configfile.ConfigFile, bc *binance.Client) *JumpFinder {
+func NewJumpFinder(l *log.Logger,
+	r *repository.Repository,
+	eb *eventbus.Bus,
+	cf *configfile.ConfigFile,
+	bc *binance.Client) *JumpFinder {
 	return &JumpFinder{
 		Logger:     l,
 		Repository: r,
@@ -278,6 +282,8 @@ func (p *JumpFinder) JumpTo(ctx context.Context, pair model.Pair) error {
 		// TODO Not enough
 		return err
 	}
+
+	p.EventBus.Notify(eventbus.GenerateEvent(eventbus.SaveBalance, nil))
 
 	return nil
 }

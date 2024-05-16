@@ -83,6 +83,9 @@ func main() {
 	logger.Debug("Starting cleaner process")
 	conf.ProcessCleaner.Start(ctx)
 
+	logger.Debug("Starting save balance process")
+	conf.BalanceSaver.Start(ctx)
+
 	conf.BinanceClient.LogBalances(ctx)
 	conf.Repository.LogCurrentCoin()
 
