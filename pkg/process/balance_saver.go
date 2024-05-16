@@ -2,6 +2,7 @@ package process
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -97,4 +98,6 @@ func (p *BalanceSaver) SaveBalance(ctx context.Context) {
 	if err := repository.SimpleUpsert(p.Repository.DB.DB, balanceToSave); err != nil {
 		p.Logger.Error("failed saving balance", zap.Error(err))
 	}
+
+	p.Logger.Info(fmt.Sprintf("Saved balance : BTC => %f USDT => %f ", balanceToSave.BtcBalance.InexactFloat64(), balanceToSave.UsdtBalance.InexactFloat64()))
 }
