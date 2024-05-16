@@ -46,7 +46,7 @@ func (p *BalanceSaver) Start(ctx context.Context) {
 		var ids []string
 
 		ids = append(ids,
-			Scheduler.Every().Second(10).Do(p.SaveBalanceBatch, ctx), // 8AM Europe/Paris
+			Scheduler.Every().Hour(12).Minute(0).Second(0).Do(p.SaveBalanceBatch, ctx), // 8AM Europe/Paris
 		)
 
 		// If ctx is canceled, we'll stop the job
