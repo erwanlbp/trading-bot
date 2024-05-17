@@ -2,7 +2,6 @@ package process
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/model"
 	"github.com/erwanlbp/trading-bot/pkg/repository"
-	"github.com/erwanlbp/trading-bot/pkg/util"
 	"github.com/prprprus/scheduler"
 )
 
@@ -72,16 +70,17 @@ func (p *BalanceSaver) SaveBalance(ctx context.Context) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 
-	history, err := p.Repository.GetLastBalanceHistory()
-	if err != nil {
-		p.Logger.Error("failed getting last balance history", zap.Error(err))
-		return
-	}
+	// history, err := p.Repository.GetLastBalanceHistory()
+	// if err != nil {
+	// 	p.Logger.Error("failed getting last balance history", zap.Error(err))
+	// 	return
+	// }
 
 	// Don't need to save if we jump last 24 hours
-	if time.Since(history.Timestamp) > util.Day {
-		return
-	}
+	// TODO Commenting because with this, if we jump multiple times per day, we only save one point, at least for now I want details lol
+	// if history.Timestamp.IsZero() || time.Since(history.Timestamp) > util.Day {
+	// return
+	// }
 
 	value, err := p.BinanceClient.GetBalanceValue(ctx, []string{constant.USDT, constant.BTC})
 	if err != nil {
@@ -97,7 +96,8 @@ func (p *BalanceSaver) SaveBalance(ctx context.Context) {
 
 	if err := repository.SimpleUpsert(p.Repository.DB.DB, balanceToSave); err != nil {
 		p.Logger.Error("failed saving balance", zap.Error(err))
+		return
 	}
 
-	p.Logger.Info(fmt.Sprintf("Saved balance : BTC => %f USDT => %f ", balanceToSave.BtcBalance.InexactFloat64(), balanceToSave.UsdtBalance.InexactFloat64()))
+	p.Logger.Info("Saved balance", zap.String("BTC", balanceToSave.BtcBalance.String()), zap.String("USDT", balanceToSave.UsdtBalance.String()))
 }

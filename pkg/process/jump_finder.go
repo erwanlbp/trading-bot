@@ -82,6 +82,7 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 			logger.Error("Failed finding coin from bridge", zap.Error(err))
 			return
 		}
+		p.EventBus.Notify(eventbus.GenerateEvent(eventbus.SaveBalance, nil))
 		return
 	}
 
@@ -166,6 +167,8 @@ func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
 	if err := p.JumpTo(ctx, bestJump.Pair.Pair); err != nil {
 		logger.Error("Failed to jump", zap.Error(err))
 	}
+
+	p.EventBus.Notify(eventbus.GenerateEvent(eventbus.SaveBalance, nil))
 }
 
 func (p *JumpFinder) CalculateRatios() ([]model.PairWithTickerRatio, error) {
@@ -269,9 +272,13 @@ func (p *JumpFinder) JumpTo(ctx context.Context, pair model.Pair) error {
 	// Save jump and update pairs to new current_coin with new ratio
 
 	jump := model.Jump{
-		FromCoin:  pair.FromCoin,
-		ToCoin:    pair.ToCoin,
-		Timestamp: buy.Time(),
+		FromCoin:     pair.FromCoin,
+		ToCoin:       pair.ToCoin,
+		Timestamp:    buy.Time(),
+		FromPrice:    sell.Price(),
+		FromQuantity: sell.Quantity(),
+		ToPrice:      buy.Price(),
+		ToQuantity:   buy.Quantity(),
 	}
 
 	if err := repository.SimpleUpsert(p.Repository.DB.DB, jump); err != nil {
@@ -282,8 +289,6 @@ func (p *JumpFinder) JumpTo(ctx context.Context, pair model.Pair) error {
 		// TODO Not enough
 		return err
 	}
-
-	p.EventBus.Notify(eventbus.GenerateEvent(eventbus.SaveBalance, nil))
 
 	return nil
 }
