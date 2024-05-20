@@ -9,6 +9,7 @@ import (
 
 	"go.uber.org/zap/zapcore"
 
+	"github.com/erwanlbp/trading-bot/pkg/config/globalconf"
 	"github.com/erwanlbp/trading-bot/pkg/util"
 	"github.com/shopspring/decimal"
 	yaml "gopkg.in/yaml.v3"
@@ -104,7 +105,13 @@ func (cf *ConfigFile) ApplyDefaults() {
 }
 
 func getConfigFilePath() string {
-	filepath := "config/config.yaml"
+	filename := "config"
+
+	if globalconf.IsBacktesting() {
+		filename = "backesting_config"
+	}
+
+	filepath := fmt.Sprintf("config/%s.yaml", filename)
 	if rootPath, ok := os.LookupEnv("ROOT_PATH"); ok {
 		filepath = rootPath + filepath
 	}

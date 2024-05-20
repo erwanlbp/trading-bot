@@ -99,6 +99,54 @@ func Init(ctx context.Context) *Config {
 	return &conf
 }
 
+func InitBacktesting(ctx context.Context) *Config {
+
+	var conf Config
+
+	conf.EventBus = eventbus.NewEventBus()
+
+	simpleLogger := log.NewSimpleZapLogger()
+
+	cf, err := configfile.ParseConfigFile()
+	if err != nil {
+		simpleLogger.Fatal("Failed to parse config file", zap.Error(err))
+	}
+	conf.ConfigFile = &cf
+
+	telebot, err := telegram.NewClient(ctx, simpleLogger, conf.ConfigFile)
+	if err != nil {
+		simpleLogger.Warn("Failed to init telegram bot (trading-bot still running)", zap.Error(err))
+	}
+	conf.TelegramClient = telebot
+
+	conf.Logger = log.NewZapLogger(telegram.ZapCoreWrapper(conf.TelegramClient, conf.ConfigFile))
+
+	dbFilePath := getDBFilePath(conf.ConfigFile.TestMode)
+	sqliteDb, err := sqlite.NewDB(conf.Logger, dbFilePath)
+	if err != nil {
+		conf.Logger.Fatal("Failed to initialize DB", zap.Error(err))
+	}
+	conf.DB = db.NewDB(sqliteDb)
+
+	conf.Repository = repository.NewRepository(conf.DB, conf.ConfigFile, conf.Logger)
+
+	conf.ProcessSymbolBlacklister = process.NewSymbolBlacklister(conf.Logger, conf.EventBus, conf.Repository)
+
+	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, conf.EventBus, conf.ProcessSymbolBlacklister)
+
+	conf.Service = service.NewService(conf.Logger, conf.Repository, conf.BinanceClient, conf.ConfigFile)
+
+	conf.ProcessPriceGetter = process.NewPriceGetter(conf.Logger, conf.BinanceClient, conf.Repository, conf.EventBus, constant.AltCoins)
+	conf.ProcessJumpFinder = process.NewJumpFinder(conf.Logger, conf.Repository, conf.EventBus, conf.ConfigFile, conf.BinanceClient)
+	conf.ProcessFeeGetter = process.NewFeeGetter(conf.Logger, conf.BinanceClient)
+	conf.ProcessCleaner = process.NewCleaner(conf.Logger, conf.Repository, &conf)
+	conf.ProcessTelegramNotifier = process.NewTelegramNotifier(conf.Logger, conf.EventBus, conf.TelegramClient)
+	conf.TelegramHandlers = handlers.NewHandlers(conf.Logger, conf.ConfigFile, conf.TelegramClient, conf.BinanceClient, conf.Repository, &conf)
+	conf.BalanceSaver = process.NewBalanceSaver(conf.Logger, conf.Repository, conf.EventBus, conf.BinanceClient)
+
+	return &conf
+}
+
 func getDBFilePath(testMode bool) string {
 	filepath := "data/trading_bot.db"
 	if testMode {

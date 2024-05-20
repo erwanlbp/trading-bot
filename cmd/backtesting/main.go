@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/erwanlbp/trading-bot/pkg/config"
+	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 )
 
 func main() {
@@ -33,8 +35,20 @@ func main() {
 
 	logger := conf.Logger
 
+	logger.Debug("Creating the DB if needed")
+	if err := conf.DB.MigrateSchema(); err != nil {
+		logger.Fatal("failed to migrate DB schema", zap.Error(err))
+	}
+
+	logger.Debug("Loading supported coins")
+	if err := config.LoadCoins(conf.ConfigFile.Coins, logger, conf.Repository); err != nil {
+		logger.Fatal("failed to load supported coins", zap.Error(err))
+	}
+
+	timeStep := 1 * time.Minute
 	end := time.Now().Truncate(time.Minute)
 	start := end.Add(-1 * 30 * 24 * time.Hour)
+	startBalance := 10000
 
 	// Documentation/Hypothesis
 	// - We consider the fees are always binance.DefaultFee (0.998001)
@@ -48,10 +62,29 @@ func main() {
 
 	// Before starting, log the config, start/end, etc
 
-	for current := start; current.Before(end); current = current.Add(1 * time.Minute) {
-		// Wait for the SearchedJump event, then directly trigger the price getter
+	logger.Info(fmt.Sprintf("Backtesting simulation; From %s to %s with step %s", start.Format(time.RFC3339), end.Format(time.RFC3339), timeStep))
+	logger.Info(fmt.Sprintf("Coins are %s", conf.ConfigFile.Coins))
+	logger.Info(fmt.Sprintf("Starting with %d %v", startBalance, conf.ConfigFile.StartCoin))
+
+	searchedJumpSub := conf.EventBus.Subscribe(eventbus.EventSearchedJump)
+	priceGetter := conf.ProcessPriceGetter
+
+	current := start
+
+	// Wait for the SearchedJump event, trigger the price getter to run one loop
+	searchedJumpSub.Handler(ctx, func(ctx context.Context, _ eventbus.Event) {
+
+		current = current.Add(timeStep)
+
+		// Close the sub when we are past the simulation end
+		if current.After(end) {
+			searchedJumpSub.Close()
+			return
+		}
+
 		// Price getter process will trigger the jump finder
-	}
+		priceGetter.FetchCoinsPrices(ctx)
+	})
 
 	// After simulation, log the result, nb of jumps, gain %
 
@@ -60,16 +93,6 @@ func main() {
 
 	logger.Debug("Starting symbol blacklister process")
 	conf.ProcessSymbolBlacklister.Start(ctx)
-
-	logger.Debug("Creating the DB if needed")
-	if err := conf.DB.MigrateSchema(); err != nil {
-		logger.Fatal("failed to migrate DB schema", zap.Error(err))
-	}
-
-	logger.Debug("Loading supported coins")
-	if err := config.LoadCoins(conf.ConfigFile.Coins, logger, conf.Repository); err != nil {
-		logger.Fatal("failed to load supported coins", zap.Error(err))
-	}
 
 	logger.Debug("Loading available pairs")
 	if err := conf.Service.InitializePairs(ctx); err != nil {
