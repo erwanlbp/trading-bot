@@ -47,6 +47,12 @@ func (p *JumpFinder) Start(ctx context.Context) {
 }
 
 func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
+	p.findJump(ctx)
+
+	p.EventBus.Notify(eventbus.GenerateEvent(eventbus.EventSearchedJump, nil))
+}
+
+func (p *JumpFinder) findJump(ctx context.Context) {
 	logger := p.Logger.With(zap.String("process", "jump_finder"))
 
 	// Get pairsRatio from current prices

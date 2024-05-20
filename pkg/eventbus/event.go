@@ -7,6 +7,7 @@ type Event struct {
 
 const (
 	EventCoinsPricesFetched    = "coins_prices_fetched"
+	EventSearchedJump          = "coins_prices_fetched"
 	EventFoundUnexistingSymbol = "found_unexisting_symbol"
 	SendNotification           = "send_notification"
 	SaveBalance                = "save_balance"
