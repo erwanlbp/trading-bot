@@ -195,6 +195,16 @@ func (r OrderResult) Price() decimal.Decimal {
 	return decimal.Zero
 }
 
+func (r OrderResult) Quantity() decimal.Decimal {
+	if r.Cancel != nil {
+		return decimal.RequireFromString(r.Cancel.ExecutedQuantity)
+	}
+	if r.Order != nil {
+		return decimal.RequireFromString(r.Order.ExecutedQuantity)
+	}
+	return decimal.Zero
+}
+
 func (r OrderResult) Time() time.Time {
 	if r.Order != nil {
 		return time.UnixMilli(r.Order.Time)
