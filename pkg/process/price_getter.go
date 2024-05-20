@@ -16,14 +16,14 @@ import (
 
 type PriceGetter struct {
 	Logger        *log.Logger
-	BinanceClient *binance.Client
+	BinanceClient binance.Client
 	Repository    *repository.Repository
 	EventBus      *eventbus.Bus
 
 	AltCoins []string
 }
 
-func NewPriceGetter(l *log.Logger, bc *binance.Client, r *repository.Repository, eb *eventbus.Bus, acs []string) *PriceGetter {
+func NewPriceGetter(l *log.Logger, bc binance.Client, r *repository.Repository, eb *eventbus.Bus, acs []string) *PriceGetter {
 	return &PriceGetter{
 		Logger:        l,
 		BinanceClient: bc,

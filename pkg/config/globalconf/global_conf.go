@@ -14,7 +14,9 @@ type GlobalConfModifier interface {
 	GetDBSize() (int64, error)
 }
 
+const BACKTESTING_ENV_VAR = "BACKTESTING"
+
 func IsBacktesting() bool {
-	val, _ := strconv.ParseBool(os.Getenv("BACKTESTING"))
+	val, _ := strconv.ParseBool(os.Getenv(BACKTESTING_ENV_VAR))
 	return val
 }

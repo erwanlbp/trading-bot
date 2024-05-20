@@ -13,18 +13,18 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
-func (c *Client) Sell(ctx context.Context, coin, stableCoin string) (OrderResult, error) {
+func (c *client) Sell(ctx context.Context, coin, stableCoin string) (OrderResult, error) {
 	return c.Trade(ctx, coin, stableCoin, binance.SideTypeSell)
 }
 
-func (c *Client) Buy(ctx context.Context, coin, stableCoin string) (OrderResult, error) {
+func (c *client) Buy(ctx context.Context, coin, stableCoin string) (OrderResult, error) {
 	return c.Trade(ctx, coin, stableCoin, binance.SideTypeBuy)
 }
 
 // return an error if a trade is in progress, otherwise return a release func to call when trade is over.
 //
 // ⚠️ Don't go concurrently too hard on this func, it's not concurrent safe, but that should be ok for our needs
-func (c *Client) TradeLock() (func(), error) {
+func (c *client) TradeLock() (func(), error) {
 	if c.tradeInProgress.Load() {
 		return nil, fmt.Errorf("Trade is in progress")
 	}
@@ -34,12 +34,12 @@ func (c *Client) TradeLock() (func(), error) {
 	}, nil
 }
 
-func (c *Client) IsTradeInProgress() bool {
+func (c *client) IsTradeInProgress() bool {
 	return c.tradeInProgress.Load()
 }
 
 // Do not call this one directly, use .Buy() or .Sell()
-func (c *Client) Trade(ctx context.Context, coin, stableCoin string, side binance.SideType) (OrderResult, error) {
+func (c *client) Trade(ctx context.Context, coin, stableCoin string, side binance.SideType) (OrderResult, error) {
 	logger := c.Logger.With(zap.Any("trade", side))
 
 	balances, err := c.GetBalance(ctx)
@@ -108,7 +108,7 @@ func (c *Client) Trade(ctx context.Context, coin, stableCoin string, side binanc
 	return order, nil
 }
 
-func (c *Client) WaitForOrderCompletion(ctx context.Context, symbol string, orderId int64) (OrderResult, error) {
+func (c *client) WaitForOrderCompletion(ctx context.Context, symbol string, orderId int64) (OrderResult, error) {
 
 	timeoutCtx, cancel := context.WithTimeout(ctx, c.ConfigFile.TradeTimeout)
 	defer cancel()

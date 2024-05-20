@@ -19,7 +19,7 @@ import (
 
 type JumpFinder struct {
 	Logger     *log.Logger
-	Binance    *binance.Client
+	Binance    binance.Client
 	Repository *repository.Repository
 	EventBus   *eventbus.Bus
 	ConfigFile *configfile.ConfigFile
@@ -29,7 +29,7 @@ func NewJumpFinder(l *log.Logger,
 	r *repository.Repository,
 	eb *eventbus.Bus,
 	cf *configfile.ConfigFile,
-	bc *binance.Client) *JumpFinder {
+	bc binance.Client) *JumpFinder {
 	return &JumpFinder{
 		Logger:     l,
 		Repository: r,
@@ -125,7 +125,7 @@ func (p *JumpFinder) findJump(ctx context.Context) {
 			lastPairRatio = defaultRatio
 		}
 
-		feeMultiplier, err := p.Binance.GetJumpFeeMultiplier(ctx, pairRatio.Pair.FromCoin, pairRatio.Pair.ToCoin, p.ConfigFile.Bridge)
+		feeMultiplier, err := binance.GetJumpFeeMultiplier(ctx, p.Binance, pairRatio.Pair.FromCoin, pairRatio.Pair.ToCoin, p.ConfigFile.Bridge)
 		if err != nil {
 			feeMultiplier = binance.DefaultFee
 		}

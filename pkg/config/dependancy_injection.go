@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/erwanlbp/trading-bot/pkg/binance"
+	binance_backtesting "github.com/erwanlbp/trading-bot/pkg/binance/backtesting"
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 	"github.com/erwanlbp/trading-bot/pkg/config/globalconf"
 	"github.com/erwanlbp/trading-bot/pkg/constant"
@@ -22,6 +23,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/service"
 	"github.com/erwanlbp/trading-bot/pkg/telegram"
 	"github.com/erwanlbp/trading-bot/pkg/telegram/handlers"
+	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
 type Config struct {
@@ -36,7 +38,7 @@ type Config struct {
 
 	EventBus *eventbus.Bus
 
-	BinanceClient  *binance.Client
+	BinanceClient  binance.Client
 	TelegramClient *telegram.Client
 
 	ProcessPriceGetter       *process.PriceGetter
@@ -94,12 +96,12 @@ func Init(ctx context.Context) *Config {
 	conf.ProcessCleaner = process.NewCleaner(conf.Logger, conf.Repository, &conf)
 	conf.ProcessTelegramNotifier = process.NewTelegramNotifier(conf.Logger, conf.EventBus, conf.TelegramClient)
 	conf.TelegramHandlers = handlers.NewHandlers(conf.Logger, conf.ConfigFile, conf.TelegramClient, conf.BinanceClient, conf.Repository, &conf)
-	conf.BalanceSaver = process.NewBalanceSaver(conf.Logger, conf.Repository, conf.EventBus, conf.BinanceClient)
+	conf.BalanceSaver = process.NewBalanceSaver(conf.Logger, conf.Repository, conf.EventBus, conf.BinanceClient, conf.ConfigFile)
 
 	return &conf
 }
 
-func InitBacktesting(ctx context.Context) *Config {
+func InitBacktesting(ctx context.Context, nowFunc util.NowFunc) *Config {
 
 	var conf Config
 
@@ -132,7 +134,7 @@ func InitBacktesting(ctx context.Context) *Config {
 
 	conf.ProcessSymbolBlacklister = process.NewSymbolBlacklister(conf.Logger, conf.EventBus, conf.Repository)
 
-	conf.BinanceClient = binance.NewClient(conf.Logger, conf.ConfigFile, conf.EventBus, conf.ProcessSymbolBlacklister)
+	conf.BinanceClient = binance_backtesting.NewClient(nowFunc, conf.Logger, conf.ConfigFile, conf.EventBus, conf.ProcessSymbolBlacklister)
 
 	conf.Service = service.NewService(conf.Logger, conf.Repository, conf.BinanceClient, conf.ConfigFile)
 
@@ -142,16 +144,19 @@ func InitBacktesting(ctx context.Context) *Config {
 	conf.ProcessCleaner = process.NewCleaner(conf.Logger, conf.Repository, &conf)
 	conf.ProcessTelegramNotifier = process.NewTelegramNotifier(conf.Logger, conf.EventBus, conf.TelegramClient)
 	conf.TelegramHandlers = handlers.NewHandlers(conf.Logger, conf.ConfigFile, conf.TelegramClient, conf.BinanceClient, conf.Repository, &conf)
-	conf.BalanceSaver = process.NewBalanceSaver(conf.Logger, conf.Repository, conf.EventBus, conf.BinanceClient)
+	conf.BalanceSaver = process.NewBalanceSaver(conf.Logger, conf.Repository, conf.EventBus, conf.BinanceClient, conf.ConfigFile)
 
 	return &conf
 }
 
 func getDBFilePath(testMode bool) string {
-	filepath := "data/trading_bot.db"
-	if testMode {
-		filepath = "data/test_trading_bot.db"
+	filename := "trading_bot"
+	if globalconf.IsBacktesting() {
+		filename = "backtesting_trading_bot"
+	} else if testMode {
+		filename = "test_trading_bot"
 	}
+	filepath := fmt.Sprintf("data/%s.db", filename)
 	if rootPath, ok := os.LookupEnv("ROOT_PATH"); ok {
 		filepath = rootPath + filepath
 	}

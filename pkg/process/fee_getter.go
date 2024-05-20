@@ -13,10 +13,10 @@ import (
 
 type FeeGetter struct {
 	Logger        *log.Logger
-	BinanceClient *binance.Client
+	BinanceClient binance.Client
 }
 
-func NewFeeGetter(l *log.Logger, bc *binance.Client) *FeeGetter {
+func NewFeeGetter(l *log.Logger, bc binance.Client) *FeeGetter {
 	return &FeeGetter{
 		Logger:        l,
 		BinanceClient: bc,

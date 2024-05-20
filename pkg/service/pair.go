@@ -69,7 +69,7 @@ func (s *Service) InitializePairs(ctx context.Context) error {
 			if lastJump, ok := lastJumpToCoin[pair.ToCoin]; ok {
 				// If we did already jump to this coin, we initialize the ratio at the last jump timestamp
 				// As jumps have different timestamps we have to fetch the prices coin per coin
-				fromPrice, err := s.Binance.GetSymbolPriceAtTime(ctx, pair.FromCoin, s.ConfigFile.Bridge, lastJump.Timestamp)
+				fromPrice, err := s.Binance.GetSymbolPriceAtTime(ctx, util.Symbol(pair.FromCoin, s.ConfigFile.Bridge), lastJump.Timestamp)
 				if err != nil {
 					if err == binance.ErrNoPriceFoundAtTime {
 						s.Logger.Warn(fmt.Sprintf("Couldn't find price at last jump date for coin %s, disabling it, you'll enable it after next jump, maybe it'll have data", pair.FromCoin))
@@ -83,7 +83,7 @@ func (s *Service) InitializePairs(ctx context.Context) error {
 						return fmt.Errorf("failed getting from_coin(%s) price at time(%s): %w", pair.FromCoin, lastJump.Timestamp, err)
 					}
 				}
-				toPrice, err := s.Binance.GetSymbolPriceAtTime(ctx, pair.ToCoin, s.ConfigFile.Bridge, lastJump.Timestamp)
+				toPrice, err := s.Binance.GetSymbolPriceAtTime(ctx, util.Symbol(pair.ToCoin, s.ConfigFile.Bridge), lastJump.Timestamp)
 				if err != nil {
 					if err == binance.ErrNoPriceFoundAtTime {
 						s.Logger.Warn(fmt.Sprintf("Couldn't find price at last jump date for coin %s, disabling it, you'll enable it after next jump, maybe it'll have data", pair.FromCoin))

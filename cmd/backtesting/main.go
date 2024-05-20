@@ -11,10 +11,15 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/erwanlbp/trading-bot/pkg/config"
+	"github.com/erwanlbp/trading-bot/pkg/config/globalconf"
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 )
 
 func main() {
+
+	// So the user doesn't have to set the variable when starting the exe, but we have it globally
+	_ = os.Setenv(globalconf.BACKTESTING_ENV_VAR, "true")
+
 	cancelChan := make(chan os.Signal, 1)
 	// catch SIGETRM or SIGINTERRUPT
 	signal.Notify(cancelChan, syscall.SIGTERM, syscall.SIGINT)
@@ -31,7 +36,11 @@ func main() {
 		close(done)
 	}()
 
-	conf := config.Init(ctx)
+	// TODO Wipe the backtesting DB to always have new DB ?
+
+	timeStepper := NewTimeStepper(time.Now().Truncate(time.Minute), time.Now().Add(-1*30*24*time.Hour).Truncate(time.Minute), 1*time.Minute)
+
+	conf := config.InitBacktesting(ctx, timeStepper.GetTime)
 
 	logger := conf.Logger
 
@@ -45,9 +54,6 @@ func main() {
 		logger.Fatal("failed to load supported coins", zap.Error(err))
 	}
 
-	timeStep := 1 * time.Minute
-	end := time.Now().Truncate(time.Minute)
-	start := end.Add(-1 * 30 * 24 * time.Hour)
 	startBalance := 10000
 
 	// Documentation/Hypothesis
@@ -62,22 +68,20 @@ func main() {
 
 	// Before starting, log the config, start/end, etc
 
-	logger.Info(fmt.Sprintf("Backtesting simulation; From %s to %s with step %s", start.Format(time.RFC3339), end.Format(time.RFC3339), timeStep))
+	logger.Info("Backtesting simulation; " + timeStepper.String())
 	logger.Info(fmt.Sprintf("Coins are %s", conf.ConfigFile.Coins))
 	logger.Info(fmt.Sprintf("Starting with %d %v", startBalance, conf.ConfigFile.StartCoin))
 
 	searchedJumpSub := conf.EventBus.Subscribe(eventbus.EventSearchedJump)
 	priceGetter := conf.ProcessPriceGetter
 
-	current := start
-
 	// Wait for the SearchedJump event, trigger the price getter to run one loop
 	searchedJumpSub.Handler(ctx, func(ctx context.Context, _ eventbus.Event) {
 
-		current = current.Add(timeStep)
+		timeStepper.Next()
 
 		// Close the sub when we are past the simulation end
-		if current.After(end) {
+		if timeStepper.Done() {
 			searchedJumpSub.Close()
 			return
 		}
@@ -113,4 +117,35 @@ func main() {
 
 	// Wait until done is closed
 	<-done
+}
+
+type TimeStepper struct {
+	current time.Time
+
+	start, end time.Time
+	step       time.Duration
+}
+
+func NewTimeStepper(start, end time.Time, step time.Duration) TimeStepper {
+	return TimeStepper{
+		start: start,
+		end:   end,
+		step:  step,
+	}
+}
+
+func (t *TimeStepper) GetTime() time.Time {
+	return t.current
+}
+
+func (t *TimeStepper) Next() {
+	t.current = t.current.Add(t.step)
+}
+
+func (t *TimeStepper) Done() bool {
+	return t.current.After(t.end)
+}
+
+func (t *TimeStepper) String() string {
+	return fmt.Sprintf("From %s to %s with step %s", t.start, t.end, t.step)
 }

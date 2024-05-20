@@ -47,7 +47,7 @@ func LogCurrentCoin(repo *repository.Repository) {
 	fmt.Println("No current but has jumped before ? that's weird")
 }
 
-func LogBalances(ctx context.Context, binance *binance.Client, config *configfile.ConfigFile) {
+func LogBalances(ctx context.Context, binance binance.Client, config *configfile.ConfigFile) {
 	b, err := binance.GetBalance(ctx, append(config.Coins, config.Bridge)...)
 	if err != nil {
 		fmt.Println("Failed to get balances:", err.Error())
@@ -56,7 +56,7 @@ func LogBalances(ctx context.Context, binance *binance.Client, config *configfil
 	}
 }
 
-func LogUSDTValue(ctx context.Context, binance *binance.Client, config *configfile.ConfigFile) {
+func LogUSDTValue(ctx context.Context, binance binance.Client, config *configfile.ConfigFile) {
 	b, err := binance.GetBalance(ctx, append(config.Coins, config.Bridge)...)
 	if err != nil {
 		fmt.Println("Failed to get balances:", err.Error())

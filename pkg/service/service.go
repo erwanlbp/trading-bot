@@ -10,11 +10,11 @@ import (
 type Service struct {
 	Logger     *log.Logger
 	Repository *repository.Repository
-	Binance    *binance.Client
+	Binance    binance.Client
 	ConfigFile *configfile.ConfigFile
 }
 
-func NewService(l *log.Logger, r *repository.Repository, b *binance.Client, cf *configfile.ConfigFile) *Service {
+func NewService(l *log.Logger, r *repository.Repository, b binance.Client, cf *configfile.ConfigFile) *Service {
 	return &Service{
 		Logger:     l,
 		Repository: r,

@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/erwanlbp/trading-bot/pkg/binance"
+	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
 	"github.com/erwanlbp/trading-bot/pkg/constant"
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 	"github.com/erwanlbp/trading-bot/pkg/log"
@@ -19,17 +20,19 @@ import (
 type BalanceSaver struct {
 	mtx           sync.Mutex
 	Logger        *log.Logger
+	ConfigFile    *configfile.ConfigFile
 	Repository    *repository.Repository
 	EventBus      *eventbus.Bus
-	BinanceClient *binance.Client
+	BinanceClient binance.Client
 }
 
-func NewBalanceSaver(l *log.Logger, r *repository.Repository, e *eventbus.Bus, b *binance.Client) *BalanceSaver {
+func NewBalanceSaver(l *log.Logger, r *repository.Repository, e *eventbus.Bus, b binance.Client, cf *configfile.ConfigFile) *BalanceSaver {
 	return &BalanceSaver{
 		Logger:        l,
 		Repository:    r,
 		EventBus:      e,
 		BinanceClient: b,
+		ConfigFile:    cf,
 	}
 }
 
@@ -82,7 +85,7 @@ func (p *BalanceSaver) SaveBalance(ctx context.Context) {
 	// return
 	// }
 
-	value, err := p.BinanceClient.GetBalanceValue(ctx, []string{constant.USDT, constant.BTC})
+	value, err := binance.GetBalanceValue(ctx, p.BinanceClient, append(p.ConfigFile.Coins, p.ConfigFile.Bridge), []string{constant.USDT, constant.BTC})
 	if err != nil {
 		p.Logger.Error("failed getting balance value", zap.Error(err))
 		return

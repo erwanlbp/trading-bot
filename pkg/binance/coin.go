@@ -25,7 +25,7 @@ type CoinPriceGroupByAlt struct {
 	Prices []CoinPrice
 }
 
-func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) (map[string]CoinPrice, error) {
+func (c *client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) (map[string]CoinPrice, error) {
 
 	symbols := getSymbols(coins, altCoins, c.SymbolBlackList)
 
@@ -65,14 +65,15 @@ func (c *Client) GetCoinsPrice(ctx context.Context, coins, altCoins []string) (m
 	return res, nil
 }
 
-func (c *Client) GetSymbolPriceAtTime(ctx context.Context, coin, altCoin string, date time.Time) (CoinPrice, error) {
+func (c *client) GetSymbolPriceAtTime(ctx context.Context, symbol string, date time.Time) (CoinPrice, error) {
 
-	symbols := getSymbols([]string{coin}, []string{altCoin}, c.SymbolBlackList)
+	// TODO c'est moche de faire ca comme ca lol mais ca marche
+	symbols := getSymbols([]string{symbol}, []string{""}, c.SymbolBlackList)
 
 	if len(symbols) == 0 {
 		return CoinPrice{}, fmt.Errorf("no symbols found")
 	}
-	symbol := symbols[0]
+	symbol = symbols[0]
 
 	prices, err := c.client.NewKlinesService().
 		Symbol(symbol).
@@ -110,8 +111,6 @@ func (c *Client) GetSymbolPriceAtTime(ctx context.Context, coin, altCoin string,
 	finalPrice = finalPrice.Div(decimal.NewFromInt(int64(len(pricesToAvg))))
 
 	return CoinPrice{
-		Coin:      coin,
-		AltCoin:   altCoin,
 		Price:     finalPrice,
 		Timestamp: date,
 	}, nil
@@ -132,7 +131,7 @@ func getSymbols(coins []string, altCoins []string, blacklist SymbolBlackListGett
 	return util.Keys(symbols)
 }
 
-func (c *Client) GetSymbolPrice(ctx context.Context, symbol string) (decimal.Decimal, error) {
+func (c *client) GetSymbolPrice(ctx context.Context, symbol string) (decimal.Decimal, error) {
 	prices, err := c.client.NewListPricesService().Symbol(symbol).Do(ctx)
 	if err != nil {
 		return decimal.Zero, err
@@ -150,7 +149,7 @@ func (c *Client) GetSymbolPrice(ctx context.Context, symbol string) (decimal.Dec
 	return p, nil
 }
 
-func (c *Client) dichotomicPriceFetching(ctx context.Context, symbols []string) ([]*binance.SymbolPrice, error) {
+func (c *client) dichotomicPriceFetching(ctx context.Context, symbols []string) ([]*binance.SymbolPrice, error) {
 
 	// TODO Flemme de faire l'algo dichotomic là maintenant lol, pour l'instant je fais du 1 par 1 mais ca va spammer 😬
 
@@ -172,7 +171,7 @@ func (c *Client) dichotomicPriceFetching(ctx context.Context, symbols []string) 
 	return prices, nil
 }
 
-func (c *Client) GetSymbolInfos(ctx context.Context, symbol string) (binance.Symbol, error) {
+func (c *client) GetSymbolInfos(ctx context.Context, symbol string) (binance.Symbol, error) {
 	allInfos := c.coinInfosRefresher.Data(ctx)
 
 	info, ok := allInfos[symbol]
@@ -183,7 +182,7 @@ func (c *Client) GetSymbolInfos(ctx context.Context, symbol string) (binance.Sym
 	return info, nil
 }
 
-func (c *Client) RefreshSymbolInfos(ctx context.Context) (map[string]binance.Symbol, error) {
+func (c *client) RefreshSymbolInfos(ctx context.Context) (map[string]binance.Symbol, error) {
 	infos, err := c.client.NewExchangeInfoService().Symbols(c.ConfigFile.GenerateAllSymbolsWithBridge()...).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get coin infos: %w", err)
