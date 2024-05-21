@@ -36,7 +36,9 @@ config/*.yaml.bkp
 trading-bot
 balances
 telegram
+backtesting
 !telegram/
+!backtesting/
 !balances/
 
 out.png

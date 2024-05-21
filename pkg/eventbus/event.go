@@ -23,3 +23,7 @@ func GenerateEvent(eventName string, payload interface{}) Event {
 func FoundUnexistingSymbol(symbol string) Event {
 	return GenerateEvent(EventFoundUnexistingSymbol, symbol)
 }
+
+func SearchedJump() Event {
+	return GenerateEvent(EventSearchedJump, nil)
+}

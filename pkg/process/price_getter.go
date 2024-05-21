@@ -2,28 +2,29 @@ package process
 
 import (
 	"context"
-	"time"
 
 	"github.com/prprprus/scheduler"
 	"go.uber.org/zap"
 
 	"github.com/erwanlbp/trading-bot/pkg/binance"
+	"github.com/erwanlbp/trading-bot/pkg/constant"
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/model"
 	"github.com/erwanlbp/trading-bot/pkg/repository"
+	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
 type PriceGetter struct {
 	Logger        *log.Logger
-	BinanceClient binance.Client
+	BinanceClient binance.Interface
 	Repository    *repository.Repository
 	EventBus      *eventbus.Bus
 
 	AltCoins []string
 }
 
-func NewPriceGetter(l *log.Logger, bc binance.Client, r *repository.Repository, eb *eventbus.Bus, acs []string) *PriceGetter {
+func NewPriceGetter(l *log.Logger, bc binance.Interface, r *repository.Repository, eb *eventbus.Bus, acs []string) *PriceGetter {
 	return &PriceGetter{
 		Logger:        l,
 		BinanceClient: bc,
@@ -39,11 +40,6 @@ func (p *PriceGetter) Start(ctx context.Context) {
 		Scheduler, _ := scheduler.NewScheduler(1000)
 
 		id := Scheduler.Every().Second(0).Do(p.FetchCoinsPrices, ctx)
-
-		// To avoid waiting too long before first fetch
-		if time.Now().Second() < 20 {
-			p.FetchCoinsPrices(ctx)
-		}
 
 		// If ctx is canceled, we'll stop the job
 		<-ctx.Done()
@@ -68,7 +64,7 @@ func (p *PriceGetter) FetchCoinsPrices(ctx context.Context) {
 		coins = append(coins, coin.Coin)
 	}
 
-	prices, err := p.BinanceClient.GetCoinsPrice(ctx, coins, p.AltCoins)
+	prices, err := p.BinanceClient.GetCoinsPrice(ctx, coins, []string{constant.USDT})
 	if err != nil {
 		logger.Error("Failed to get coins prices", zap.Error(err))
 		return
@@ -76,9 +72,10 @@ func (p *PriceGetter) FetchCoinsPrices(ctx context.Context) {
 
 	var models []model.CoinPrice
 	for _, coinPrice := range prices {
+		coin, altCoin, _ := util.Unsymbol(coinPrice.Symbol, coins, []string{constant.USDT})
 		models = append(models, model.CoinPrice{
-			Coin:      coinPrice.Coin,
-			AltCoin:   coinPrice.AltCoin,
+			Coin:      coin,
+			AltCoin:   altCoin,
 			Price:     coinPrice.Price,
 			Timestamp: coinPrice.Timestamp,
 		})

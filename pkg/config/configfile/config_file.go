@@ -65,7 +65,7 @@ func (j Jump) GetNeededGain(lastJump time.Time) decimal.Decimal {
 		lastJump = j.DefaultLastJump
 	}
 
-	t := time.Now().UTC()
+	t := util.Now().UTC()
 	for {
 		t = t.Add(-j.After)
 		if lastJump.Before(t) {
@@ -108,7 +108,7 @@ func getConfigFilePath() string {
 	filename := "config"
 
 	if globalconf.IsBacktesting() {
-		filename = "backesting_config"
+		filename = "backtesting_config"
 	}
 
 	filepath := fmt.Sprintf("config/%s.yaml", filename)
@@ -142,7 +142,7 @@ func ParseConfigFile() (ConfigFile, error) {
 	// yamled, _ := yaml.Marshal(res)
 	// fmt.Print(string(yamled))
 
-	res.Jump.DefaultLastJump = time.Now().UTC()
+	res.Jump.DefaultLastJump = util.Now().UTC()
 
 	return res, nil
 }

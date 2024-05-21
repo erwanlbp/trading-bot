@@ -9,7 +9,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
-func (c *client) GetBalance(ctx context.Context, coins ...string) (map[string]decimal.Decimal, error) {
+func (c *Client) GetBalance(ctx context.Context, coins ...string) (map[string]decimal.Decimal, error) {
 
 	account, err := c.client.NewGetAccountService().Do(ctx)
 	if err != nil {
@@ -33,7 +33,7 @@ func (c *client) GetBalance(ctx context.Context, coins ...string) (map[string]de
 	return res, nil
 }
 
-func GetBalanceValue(ctx context.Context, c Client, coins, altCoins []string) (map[string]decimal.Decimal, error) {
+func GetBalanceValue(ctx context.Context, c Interface, coins, altCoins []string) (map[string]decimal.Decimal, error) {
 	balances, err := c.GetBalance(ctx, coins...)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,8 @@ func GetBalanceValue(ctx context.Context, c Client, coins, altCoins []string) (m
 
 	res := map[string]decimal.Decimal{}
 	for _, price := range prices {
-		res[price.AltCoin] = res[price.AltCoin].Add(price.Price.Mul(balances[price.Coin]))
+		coin, altCoin, _ := util.Unsymbol(price.Symbol, coins, altCoins)
+		res[altCoin] = res[altCoin].Add(price.Price.Mul(balances[coin]))
 	}
 
 	return res, nil

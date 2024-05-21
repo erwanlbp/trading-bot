@@ -13,6 +13,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/config"
 	"github.com/erwanlbp/trading-bot/pkg/config/globalconf"
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
+	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
 func main() {
@@ -36,11 +37,15 @@ func main() {
 		close(done)
 	}()
 
-	// TODO Wipe the backtesting DB to always have new DB ?
+	timeStepper := NewTimeStepper(
+		// time.Now().Add(-1*30*24*time.Hour).Truncate(time.Minute),
+		time.Now().Add(-5*time.Minute).Truncate(time.Minute), // To test
+		time.Now().Truncate(time.Minute),
+		1*time.Minute,
+	)
+	util.Now = timeStepper.GetTime
 
-	timeStepper := NewTimeStepper(time.Now().Truncate(time.Minute), time.Now().Add(-1*30*24*time.Hour).Truncate(time.Minute), 1*time.Minute)
-
-	conf := config.InitBacktesting(ctx, timeStepper.GetTime)
+	conf := config.InitBacktesting(ctx)
 
 	logger := conf.Logger
 
@@ -53,47 +58,6 @@ func main() {
 	if err := config.LoadCoins(conf.ConfigFile.Coins, logger, conf.Repository); err != nil {
 		logger.Fatal("failed to load supported coins", zap.Error(err))
 	}
-
-	startBalance := 10000
-
-	// Documentation/Hypothesis
-	// - We consider the fees are always binance.DefaultFee (0.998001)
-	// - We consider the buy/sell orders are instantly executed
-	// - We start the simulation with 10000 USDT
-	// - We use Binance prod API so that coins have prices even in the past
-
-	// =====
-	// Steps
-	// =====
-
-	// Before starting, log the config, start/end, etc
-
-	logger.Info("Backtesting simulation; " + timeStepper.String())
-	logger.Info(fmt.Sprintf("Coins are %s", conf.ConfigFile.Coins))
-	logger.Info(fmt.Sprintf("Starting with %d %v", startBalance, conf.ConfigFile.StartCoin))
-
-	searchedJumpSub := conf.EventBus.Subscribe(eventbus.EventSearchedJump)
-	priceGetter := conf.ProcessPriceGetter
-
-	// Wait for the SearchedJump event, trigger the price getter to run one loop
-	searchedJumpSub.Handler(ctx, func(ctx context.Context, _ eventbus.Event) {
-
-		timeStepper.Next()
-
-		// Close the sub when we are past the simulation end
-		if timeStepper.Done() {
-			searchedJumpSub.Close()
-			return
-		}
-
-		// Price getter process will trigger the jump finder
-		priceGetter.FetchCoinsPrices(ctx)
-	})
-
-	// After simulation, log the result, nb of jumps, gain %
-
-	logger.Debug("Starting Telegram notification process")
-	conf.ProcessTelegramNotifier.Start(ctx)
 
 	logger.Debug("Starting symbol blacklister process")
 	conf.ProcessSymbolBlacklister.Start(ctx)
@@ -115,6 +79,51 @@ func main() {
 	logger.Debug("Starting save balance process")
 	conf.BalanceSaver.Start(ctx)
 
+	startBalance := 10000
+
+	// Documentation/Hypothesis
+	// - We consider the fees are always binance.DefaultFee (0.998001)
+	// - We consider the buy/sell orders are instantly executed
+	// - We start the simulation with 10000 USDT
+	// - We use Binance prod API so that coins have prices even in the past
+
+	// =====
+	// Steps
+	// =====
+
+	// Before starting, log the config, start/end, etc
+
+	logger.Info("Backtesting simulation; " + timeStepper.String())
+	logger.Info(fmt.Sprintf("Coins are %s", conf.ConfigFile.Coins))
+	logger.Info(fmt.Sprintf("Starting with %d %v", startBalance, *conf.ConfigFile.StartCoin))
+
+	searchedJumpSub := conf.EventBus.Subscribe(eventbus.EventSearchedJump)
+	priceGetter := conf.ProcessPriceGetter
+
+	go func() {
+		// Start the backtesting process in 1s by triggering a SearchedJump event
+		time.Sleep(1 * time.Second)
+		conf.EventBus.Notify(eventbus.SearchedJump())
+	}()
+
+	// Wait for the SearchedJump event, trigger the price getter to run one loop
+	searchedJumpSub.Handler(ctx, func(ctx context.Context, _ eventbus.Event) {
+		timeStepper.Next()
+
+		// Close the sub when we are past the simulation end
+		if timeStepper.Done() {
+			searchedJumpSub.Close()
+			return
+		}
+
+		logger.Info(fmt.Sprintf("Current time is %s", timeStepper.GetTime().Format(time.RFC3339)))
+
+		// Price getter process will trigger the jump finder
+		priceGetter.FetchCoinsPrices(ctx)
+	})
+
+	// After simulation, log the result, nb of jumps, gain %
+
 	// Wait until done is closed
 	<-done
 }
@@ -128,9 +137,10 @@ type TimeStepper struct {
 
 func NewTimeStepper(start, end time.Time, step time.Duration) TimeStepper {
 	return TimeStepper{
-		start: start,
-		end:   end,
-		step:  step,
+		start:   start,
+		current: start,
+		end:     end,
+		step:    step,
 	}
 }
 

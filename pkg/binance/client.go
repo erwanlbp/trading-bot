@@ -21,7 +21,7 @@ type SymbolBlackListGetter interface {
 	IsSymbolBlacklisted(symbol string) bool
 }
 
-type client struct {
+type Client struct {
 	client          *binance.Client
 	Logger          *log.Logger
 	ConfigFile      *configfile.ConfigFile
@@ -33,7 +33,7 @@ type client struct {
 	coinInfosRefresher *refresher.Refresher[map[string]binance.Symbol]
 }
 
-type Client interface {
+type Interface interface {
 	GetBalance(ctx context.Context, coins ...string) (map[string]decimal.Decimal, error)
 	GetCoinsPrice(ctx context.Context, coins, altCoins []string) (map[string]CoinPrice, error)
 	GetSymbolPriceAtTime(ctx context.Context, symbol string, date time.Time) (CoinPrice, error)
@@ -49,13 +49,13 @@ type Client interface {
 	LogBalances(ctx context.Context)
 }
 
-func NewClient(l *log.Logger, cf *configfile.ConfigFile, eb *eventbus.Bus, sbg SymbolBlackListGetter) *client {
+func NewClient(l *log.Logger, cf *configfile.ConfigFile, eb *eventbus.Bus, sbg SymbolBlackListGetter) *Client {
 	if cf.TestMode {
 		l.Info("Activating Binance test mode")
 		binance.UseTestnet = true
 	}
 
-	client := client{
+	client := Client{
 		client:          binance.NewClient(cf.Binance.APIKey, cf.Binance.APIKeySecret),
 		Logger:          l,
 		ConfigFile:      cf,
@@ -68,7 +68,7 @@ func NewClient(l *log.Logger, cf *configfile.ConfigFile, eb *eventbus.Bus, sbg S
 	return &client
 }
 
-func (c *client) LogBalances(ctx context.Context) {
+func (c *Client) LogBalances(ctx context.Context) {
 	b, err := c.GetBalance(ctx, append(c.ConfigFile.Coins, c.ConfigFile.Bridge)...)
 	if err != nil {
 		c.Logger.Error("Failed to get balances", zap.Error(err))

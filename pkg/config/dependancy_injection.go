@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"go.uber.org/zap"
 
@@ -23,7 +24,6 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/service"
 	"github.com/erwanlbp/trading-bot/pkg/telegram"
 	"github.com/erwanlbp/trading-bot/pkg/telegram/handlers"
-	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
 type Config struct {
@@ -38,7 +38,7 @@ type Config struct {
 
 	EventBus *eventbus.Bus
 
-	BinanceClient  binance.Client
+	BinanceClient  binance.Interface
 	TelegramClient *telegram.Client
 
 	ProcessPriceGetter       *process.PriceGetter
@@ -101,7 +101,7 @@ func Init(ctx context.Context) *Config {
 	return &conf
 }
 
-func InitBacktesting(ctx context.Context, nowFunc util.NowFunc) *Config {
+func InitBacktesting(ctx context.Context) *Config {
 
 	var conf Config
 
@@ -109,10 +109,16 @@ func InitBacktesting(ctx context.Context, nowFunc util.NowFunc) *Config {
 
 	simpleLogger := log.NewSimpleZapLogger()
 
+	if err := RemoveBacktestingDBFile(); err != nil {
+		simpleLogger.Fatal("Failed to remove previous backtesting DB file", zap.Error(err))
+	}
+
 	cf, err := configfile.ParseConfigFile()
 	if err != nil {
 		simpleLogger.Fatal("Failed to parse config file", zap.Error(err))
 	}
+	// Backtesting is always done in production mode to have Binance prod API
+	cf.TestMode = false
 	conf.ConfigFile = &cf
 
 	telebot, err := telegram.NewClient(ctx, simpleLogger, conf.ConfigFile)
@@ -134,7 +140,7 @@ func InitBacktesting(ctx context.Context, nowFunc util.NowFunc) *Config {
 
 	conf.ProcessSymbolBlacklister = process.NewSymbolBlacklister(conf.Logger, conf.EventBus, conf.Repository)
 
-	conf.BinanceClient = binance_backtesting.NewClient(nowFunc, conf.Logger, conf.ConfigFile, conf.EventBus, conf.ProcessSymbolBlacklister)
+	conf.BinanceClient = binance_backtesting.NewClient(conf.Logger, conf.ConfigFile, conf.EventBus, conf.ProcessSymbolBlacklister)
 
 	conf.Service = service.NewService(conf.Logger, conf.Repository, conf.BinanceClient, conf.ConfigFile)
 
@@ -147,6 +153,13 @@ func InitBacktesting(ctx context.Context, nowFunc util.NowFunc) *Config {
 	conf.BalanceSaver = process.NewBalanceSaver(conf.Logger, conf.Repository, conf.EventBus, conf.BinanceClient, conf.ConfigFile)
 
 	return &conf
+}
+
+func RemoveBacktestingDBFile() error {
+	if err := os.Remove(getDBFilePath(false)); err != nil && !strings.Contains(err.Error(), "no such file or directory") {
+		return err
+	}
+	return nil
 }
 
 func getDBFilePath(testMode bool) string {

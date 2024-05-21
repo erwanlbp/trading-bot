@@ -18,12 +18,12 @@ type Handlers struct {
 	Logger         *log.Logger
 	Conf           *configfile.ConfigFile
 	TelegramClient *telegram.Client
-	BinanceClient  binance.Client
+	BinanceClient  binance.Interface
 	Repository     *repository.Repository
 	GlobalConf     globalconf.GlobalConfModifier
 }
 
-func NewHandlers(l *log.Logger, conf *configfile.ConfigFile, c *telegram.Client, b binance.Client, r *repository.Repository, gc globalconf.GlobalConfModifier) *Handlers {
+func NewHandlers(l *log.Logger, conf *configfile.ConfigFile, c *telegram.Client, b binance.Interface, r *repository.Repository, gc globalconf.GlobalConfModifier) *Handlers {
 	return &Handlers{
 		Logger:         l,
 		Conf:           conf,

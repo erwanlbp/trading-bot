@@ -19,7 +19,7 @@ import (
 
 type JumpFinder struct {
 	Logger     *log.Logger
-	Binance    binance.Client
+	Binance    binance.Interface
 	Repository *repository.Repository
 	EventBus   *eventbus.Bus
 	ConfigFile *configfile.ConfigFile
@@ -29,7 +29,7 @@ func NewJumpFinder(l *log.Logger,
 	r *repository.Repository,
 	eb *eventbus.Bus,
 	cf *configfile.ConfigFile,
-	bc binance.Client) *JumpFinder {
+	bc binance.Interface) *JumpFinder {
 	return &JumpFinder{
 		Logger:     l,
 		Repository: r,
@@ -43,16 +43,13 @@ func (p *JumpFinder) Start(ctx context.Context) {
 
 	sub := p.EventBus.Subscribe(eventbus.EventCoinsPricesFetched)
 
-	go sub.Handler(ctx, p.FindJump)
+	go sub.Handler(ctx, func(ctx context.Context, _ eventbus.Event) {
+		p.FindJump(ctx)
+		p.EventBus.Notify(eventbus.SearchedJump())
+	})
 }
 
-func (p *JumpFinder) FindJump(ctx context.Context, _ eventbus.Event) {
-	p.findJump(ctx)
-
-	p.EventBus.Notify(eventbus.GenerateEvent(eventbus.EventSearchedJump, nil))
-}
-
-func (p *JumpFinder) findJump(ctx context.Context) {
+func (p *JumpFinder) FindJump(ctx context.Context) {
 	logger := p.Logger.With(zap.String("process", "jump_finder"))
 
 	// Get pairsRatio from current prices
@@ -135,7 +132,7 @@ func (p *JumpFinder) findJump(ctx context.Context) {
 		computedDiff = append(computedDiff, model.Diff{
 			FromCoin:   pairRatio.Pair.FromCoin,
 			ToCoin:     pairRatio.Pair.ToCoin,
-			Timestamp:  time.Now().UTC(),
+			Timestamp:  pairRatio.Timestamp,
 			Diff:       diff,
 			NeededDiff: wantedGain,
 		})

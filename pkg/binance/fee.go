@@ -21,7 +21,7 @@ type feesCache struct {
 
 var allFees feesCache
 
-func (c *client) GetFee(ctx context.Context, symbol string) (decimal.Decimal, error) {
+func (c *Client) GetFee(ctx context.Context, symbol string) (decimal.Decimal, error) {
 	allFees.mtx.RLock()
 	defer allFees.mtx.RUnlock()
 
@@ -37,7 +37,7 @@ func (c *client) GetFee(ctx context.Context, symbol string) (decimal.Decimal, er
 	return fee, nil
 }
 
-func (c *client) RefreshFees(ctx context.Context) {
+func (c *Client) RefreshFees(ctx context.Context) {
 	allFees.mtx.Lock()
 	defer allFees.mtx.Unlock()
 
@@ -66,7 +66,7 @@ func (c *client) RefreshFees(ctx context.Context) {
 
 var DefaultFee = decimal.NewFromFloat(0.998001)
 
-func GetJumpFeeMultiplier(ctx context.Context, c Client, fromCoin, toCoin, bridge string) (decimal.Decimal, error) {
+func GetJumpFeeMultiplier(ctx context.Context, c Interface, fromCoin, toCoin, bridge string) (decimal.Decimal, error) {
 	sellingFeePct, err := c.GetFee(ctx, util.Symbol(fromCoin, bridge))
 	if err != nil {
 		return decimal.Zero, fmt.Errorf("failed to get selling fee: %w", err)

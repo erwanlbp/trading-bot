@@ -3,7 +3,6 @@ package process
 import (
 	"context"
 	"sync"
-	"time"
 
 	"go.uber.org/zap"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/log"
 	"github.com/erwanlbp/trading-bot/pkg/model"
 	"github.com/erwanlbp/trading-bot/pkg/repository"
+	"github.com/erwanlbp/trading-bot/pkg/util"
 	"github.com/prprprus/scheduler"
 )
 
@@ -23,10 +23,10 @@ type BalanceSaver struct {
 	ConfigFile    *configfile.ConfigFile
 	Repository    *repository.Repository
 	EventBus      *eventbus.Bus
-	BinanceClient binance.Client
+	BinanceClient binance.Interface
 }
 
-func NewBalanceSaver(l *log.Logger, r *repository.Repository, e *eventbus.Bus, b binance.Client, cf *configfile.ConfigFile) *BalanceSaver {
+func NewBalanceSaver(l *log.Logger, r *repository.Repository, e *eventbus.Bus, b binance.Interface, cf *configfile.ConfigFile) *BalanceSaver {
 	return &BalanceSaver{
 		Logger:        l,
 		Repository:    r,
@@ -94,7 +94,7 @@ func (p *BalanceSaver) SaveBalance(ctx context.Context) {
 	balanceToSave := model.BalanceHistory{
 		BtcBalance:  value[constant.BTC],
 		UsdtBalance: value[constant.USDT],
-		Timestamp:   time.Now().UTC(),
+		Timestamp:   util.Now().UTC(),
 	}
 
 	if err := repository.SimpleUpsert(p.Repository.DB.DB, balanceToSave); err != nil {

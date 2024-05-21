@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/erwanlbp/trading-bot/pkg/model"
+	"github.com/erwanlbp/trading-bot/pkg/util"
 )
 
 func (r *Repository) GetBotFirstLaunch() (time.Time, error) {
@@ -32,5 +33,5 @@ func (r *Repository) GetBotFirstLaunch() (time.Time, error) {
 	}
 
 	// If we never jumped nor have coin_price (maybe it is the first launch ?) we'll use Now()
-	return time.Now(), nil
+	return util.Now(), nil
 }

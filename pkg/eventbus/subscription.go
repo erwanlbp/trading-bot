@@ -22,6 +22,9 @@ func newSubscription(events []string) *Subscription {
 }
 
 func (s *Subscription) Close() {
+	if s.closed {
+		return
+	}
 	s.closed = true
 	close(s.EventsCh)
 }

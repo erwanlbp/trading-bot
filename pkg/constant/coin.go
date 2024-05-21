@@ -4,4 +4,4 @@ package constant
 const USDT = "USDT"
 const BTC = "BTC"
 
-var AltCoins = []string{USDT, BTC}
+var AltCoins = []string{USDT}
