@@ -24,6 +24,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/service"
 	"github.com/erwanlbp/trading-bot/pkg/telegram"
 	"github.com/erwanlbp/trading-bot/pkg/telegram/handlers"
+	"github.com/shopspring/decimal"
 )
 
 type Config struct {
@@ -101,7 +102,7 @@ func Init(ctx context.Context) *Config {
 	return &conf
 }
 
-func InitBacktesting(ctx context.Context) *Config {
+func InitBacktesting(ctx context.Context, initialBalance decimal.Decimal) *Config {
 
 	var conf Config
 
@@ -127,7 +128,7 @@ func InitBacktesting(ctx context.Context) *Config {
 	}
 	conf.TelegramClient = telebot
 
-	conf.Logger = log.NewZapLogger(telegram.ZapCoreWrapper(conf.TelegramClient, conf.ConfigFile))
+	conf.Logger = simpleLogger
 
 	dbFilePath := getDBFilePath(conf.ConfigFile.TestMode)
 	sqliteDb, err := sqlite.NewDB(conf.Logger, dbFilePath)
@@ -140,7 +141,7 @@ func InitBacktesting(ctx context.Context) *Config {
 
 	conf.ProcessSymbolBlacklister = process.NewSymbolBlacklister(conf.Logger, conf.EventBus, conf.Repository)
 
-	conf.BinanceClient = binance_backtesting.NewClient(conf.Logger, conf.ConfigFile, conf.EventBus, conf.ProcessSymbolBlacklister)
+	conf.BinanceClient = binance_backtesting.NewClient(conf.Logger, conf.ConfigFile, conf.EventBus, conf.ProcessSymbolBlacklister, initialBalance)
 
 	conf.Service = service.NewService(conf.Logger, conf.Repository, conf.BinanceClient, conf.ConfigFile)
 

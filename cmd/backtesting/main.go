@@ -14,6 +14,7 @@ import (
 	"github.com/erwanlbp/trading-bot/pkg/config/globalconf"
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 	"github.com/erwanlbp/trading-bot/pkg/util"
+	"github.com/shopspring/decimal"
 )
 
 func main() {
@@ -39,15 +40,18 @@ func main() {
 
 	timeStepper := NewTimeStepper(
 		// time.Now().Add(-1*30*24*time.Hour).Truncate(time.Minute),
-		time.Now().Add(-5*time.Minute).Truncate(time.Minute), // To test
-		time.Now().Truncate(time.Minute),
-		1*time.Minute,
+		time.Date(2024, 04, 01, 00, 00, 00, 00, time.UTC).Truncate(time.Minute), // To test
+		time.Date(2024, 05, 01, 00, 00, 00, 00, time.UTC).Truncate(time.Minute), // To test
+		10*time.Minute,
 	)
 	util.Now = timeStepper.GetTime
 
-	conf := config.InitBacktesting(ctx)
+	var startBalance decimal.Decimal = decimal.NewFromInt(10000)
+	conf := config.InitBacktesting(ctx, startBalance)
 
 	logger := conf.Logger
+
+	conf.BinanceClient.RefreshFees(ctx)
 
 	logger.Debug("Creating the DB if needed")
 	if err := conf.DB.MigrateSchema(); err != nil {
@@ -70,16 +74,8 @@ func main() {
 	logger.Debug("Starting jump finder process")
 	conf.ProcessJumpFinder.Start(ctx)
 
-	logger.Debug("Starting coins price getter process")
-	conf.ProcessPriceGetter.Start(ctx)
-
-	logger.Debug("Starting cleaner process")
-	conf.ProcessCleaner.Start(ctx)
-
 	logger.Debug("Starting save balance process")
 	conf.BalanceSaver.Start(ctx)
-
-	startBalance := 10000
 
 	// Documentation/Hypothesis
 	// - We consider the fees are always binance.DefaultFee (0.998001)
@@ -95,14 +91,15 @@ func main() {
 
 	logger.Info("Backtesting simulation; " + timeStepper.String())
 	logger.Info(fmt.Sprintf("Coins are %s", conf.ConfigFile.Coins))
-	logger.Info(fmt.Sprintf("Starting with %d %v", startBalance, *conf.ConfigFile.StartCoin))
+	logger.Info(fmt.Sprintf("Starting with %s %v", startBalance, *conf.ConfigFile.StartCoin))
 
 	searchedJumpSub := conf.EventBus.Subscribe(eventbus.EventSearchedJump)
 	priceGetter := conf.ProcessPriceGetter
 
+	// Start the backtesting process in 1s by triggering a SearchedJump event
 	go func() {
-		// Start the backtesting process in 1s by triggering a SearchedJump event
-		time.Sleep(1 * time.Second)
+		time.Sleep(500 * time.Millisecond)
+		logger.Debug("Triggering first event to start backtesting")
 		conf.EventBus.Notify(eventbus.SearchedJump())
 	}()
 
@@ -116,7 +113,10 @@ func main() {
 			return
 		}
 
+		// util.PressKeyToContinue()
+
 		logger.Info(fmt.Sprintf("Current time is %s", timeStepper.GetTime().Format(time.RFC3339)))
+		conf.BinanceClient.LogBalances(ctx)
 
 		// Price getter process will trigger the jump finder
 		priceGetter.FetchCoinsPrices(ctx)
@@ -124,6 +124,7 @@ func main() {
 
 	// After simulation, log the result, nb of jumps, gain %
 
+	close(cancelChan)
 	// Wait until done is closed
 	<-done
 }
@@ -135,8 +136,8 @@ type TimeStepper struct {
 	step       time.Duration
 }
 
-func NewTimeStepper(start, end time.Time, step time.Duration) TimeStepper {
-	return TimeStepper{
+func NewTimeStepper(start, end time.Time, step time.Duration) *TimeStepper {
+	return &TimeStepper{
 		start:   start,
 		current: start,
 		end:     end,

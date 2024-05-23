@@ -28,3 +28,8 @@ func ToYAML(x interface{}) string {
 	b, _ := yaml.Marshal(x)
 	return string(b)
 }
+
+func PressKeyToContinue() {
+	fmt.Println("Press the Enter Key to continue ...")
+	fmt.Scanln() // wait for Enter Key
+}

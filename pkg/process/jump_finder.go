@@ -52,6 +52,8 @@ func (p *JumpFinder) Start(ctx context.Context) {
 func (p *JumpFinder) FindJump(ctx context.Context) {
 	logger := p.Logger.With(zap.String("process", "jump_finder"))
 
+	logger.Debug("Searching for jump ...")
+
 	// Get pairsRatio from current prices
 	pairsRatio, err := p.CalculateRatios()
 	if err != nil {
@@ -180,6 +182,7 @@ func (p *JumpFinder) CalculateRatios() ([]model.PairWithTickerRatio, error) {
 		return nil, fmt.Errorf("failed to get coins last price: %w", err)
 	}
 	if len(lastPrices) == 0 {
+		p.Logger.Debug("No last prices found to calculate ratios")
 		return nil, nil
 	}
 
@@ -321,7 +324,7 @@ func (p *JumpFinder) FindGoodCoinFromBridge(ctx context.Context, pairsRatio []mo
 			}
 
 			// Ignore the pair if we calculated the ratio too long ago
-			if lastRatio.Timestamp.Before(currentRatio.Timestamp.Add(-5 * time.Minute)) {
+			if lastRatio.Timestamp.IsZero() {
 				continue
 			}
 			diff := currentRatio.Ratio.Div(lastRatio.Ratio)

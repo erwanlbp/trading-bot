@@ -2,6 +2,7 @@ package process
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/prprprus/scheduler"
 	"go.uber.org/zap"
@@ -84,6 +85,8 @@ func (p *PriceGetter) FetchCoinsPrices(ctx context.Context) {
 	if err := repository.SimpleUpsert(p.Repository.DB.DB, models...); err != nil {
 		logger.Error("Failed to save coin prices", zap.Error(err))
 	}
+
+	logger.Debug(fmt.Sprintf("Fetched and saved %d coin prices ...", len(models)))
 
 	p.EventBus.Notify(eventbus.GenerateEvent(eventbus.EventCoinsPricesFetched, nil))
 }

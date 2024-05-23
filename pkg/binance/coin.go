@@ -8,6 +8,7 @@ import (
 
 	"github.com/adshao/go-binance/v2"
 	"github.com/shopspring/decimal"
+	"go.uber.org/zap"
 
 	"github.com/erwanlbp/trading-bot/pkg/eventbus"
 	"github.com/erwanlbp/trading-bot/pkg/util"
@@ -131,29 +132,15 @@ func (c *Client) GetSymbolPricesFromTime(ctx context.Context, symbol string, dat
 
 	var res []CoinPrice = make([]CoinPrice, len(prices))
 	for i, kline := range prices {
-		var pricesToAvg []decimal.Decimal
-		open, err := decimal.NewFromString(kline.Open)
-		if err == nil {
-			pricesToAvg = append(pricesToAvg, open)
+		price, err := decimal.NewFromString(kline.Open)
+		if err != nil {
+			c.Logger.Warn("Failed parsing price", zap.String("price", kline.Open), zap.Error(err), zap.String("coin", symbol))
 		}
-		close, err := decimal.NewFromString(kline.Close)
-		if err == nil {
-			pricesToAvg = append(pricesToAvg, close)
-		}
-		if len(pricesToAvg) == 0 {
-			return nil, errors.New("couldn't find/parse prices")
-		}
-
-		finalPrice := decimal.Zero
-		for _, price := range pricesToAvg {
-			finalPrice = finalPrice.Add(price)
-		}
-		finalPrice = finalPrice.Div(decimal.NewFromInt(int64(len(pricesToAvg))))
 
 		res[i] = CoinPrice{
 			Symbol:    symbol,
-			Price:     finalPrice,
-			Timestamp: time.UnixMilli((kline.CloseTime + kline.OpenTime) / 2),
+			Price:     price,
+			Timestamp: time.UnixMilli(kline.OpenTime).Truncate(time.Minute).UTC(),
 		}
 	}
 

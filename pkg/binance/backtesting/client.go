@@ -8,6 +8,7 @@ import (
 
 	binance_api "github.com/adshao/go-binance/v2"
 	"github.com/shopspring/decimal"
+	"go.uber.org/zap"
 
 	"github.com/erwanlbp/trading-bot/pkg/binance"
 	"github.com/erwanlbp/trading-bot/pkg/config/configfile"
@@ -34,7 +35,7 @@ type SymbolPrices struct {
 	Prices     map[time.Time]decimal.Decimal
 }
 
-func NewClient(l *log.Logger, cf *configfile.ConfigFile, eb *eventbus.Bus, sbg binance.SymbolBlackListGetter) *BacktestingClient {
+func NewClient(l *log.Logger, cf *configfile.ConfigFile, eb *eventbus.Bus, sbg binance.SymbolBlackListGetter, initialBalance decimal.Decimal) *BacktestingClient {
 
 	realClient := binance.NewClient(l, cf, eb, sbg)
 
@@ -47,12 +48,18 @@ func NewClient(l *log.Logger, cf *configfile.ConfigFile, eb *eventbus.Bus, sbg b
 		prices:     make(map[string]SymbolPrices),
 	}
 
+	client.balances[cf.Bridge] = initialBalance
+
 	return &client
 }
 
 func (c *BacktestingClient) GetBalance(ctx context.Context, coins ...string) (map[string]decimal.Decimal, error) {
 	c.mtx.RLock()
 	defer c.mtx.RUnlock()
+
+	if len(coins) == 0 {
+		return c.balances, nil
+	}
 
 	var res map[string]decimal.Decimal = make(map[string]decimal.Decimal)
 
@@ -117,7 +124,12 @@ func (c *BacktestingClient) GetSymbolPriceAtTime(ctx context.Context, symbol str
 		}
 	}
 
-	price := symbolPrices.Prices[date.Truncate(time.Minute)]
+	price, ok := symbolPrices.Prices[date.Truncate(time.Minute)]
+	if !ok {
+		util.DebugPrintJson(symbolPrices.Prices[date.Truncate(time.Minute)])
+		return binance.CoinPrice{}, fmt.Errorf("cannot find price")
+	}
+
 	return binance.CoinPrice{
 		Symbol:    symbol,
 		Price:     price,
@@ -136,18 +148,104 @@ func (c *BacktestingClient) GetSymbolInfos(ctx context.Context, symbol string) (
 
 // Fees are always the default in backtesting
 func (c *BacktestingClient) GetFee(ctx context.Context, symbol string) (decimal.Decimal, error) {
-	return binance.DefaultFee, nil
+	return c.realClient.GetFee(ctx, symbol)
 }
 
 // Fees are always the default in backtesting
-func (c *BacktestingClient) RefreshFees(ctx context.Context) {}
+func (c *BacktestingClient) RefreshFees(ctx context.Context) {
+	c.realClient.RefreshFees(ctx)
+}
 
 func (c *BacktestingClient) Sell(ctx context.Context, coin, stableCoin string) (binance.OrderResult, error) {
-	panic("not implemented")
+	var res binance.OrderResult
+
+	balances, err := c.GetBalance(ctx)
+	if err != nil {
+		return res, fmt.Errorf("failed to get balances: %w", err)
+	}
+
+	symbol := util.Symbol(coin, stableCoin)
+
+	price, err := c.GetSymbolPrice(ctx, symbol)
+	if err != nil {
+		return res, fmt.Errorf("failed to get symbol price: %w", err)
+	}
+
+	symbolInfo, err := c.GetSymbolInfos(ctx, symbol)
+	if err != nil {
+		return res, fmt.Errorf("failed to get symbol infos: %w", err)
+	}
+
+	// Calculate how much quantity we can sell
+	step := symbolInfo.LotSizeFilter().StepSize
+
+	fee, err := c.GetFee(ctx, symbol)
+	if err != nil {
+		return res, fmt.Errorf("failed fetching fee: %w", err)
+	}
+
+	quantity := decimal.RequireFromString(binance.StepSizeFormat(balances[coin], step))
+	quantityWithoutFee := quantity.Mul(decimal.NewFromInt(1).Sub(fee))
+
+	c.Logger.Info(fmt.Sprintf("I have %s %s and %s %s. I'll sell %s %s, at price %s", balances[coin], coin, balances[stableCoin], stableCoin, quantity, coin, price), zap.String("step", step))
+
+	c.balances[coin] = c.balances[coin].Sub(quantity)
+	c.balances[stableCoin] = c.balances[stableCoin].Add(quantityWithoutFee.Mul(price))
+
+	return binance.OrderResult{
+		Order: &binance_api.Order{
+			Status:           binance_api.OrderStatusTypeFilled,
+			Price:            price.String(),
+			ExecutedQuantity: quantity.String(),
+			Time:             util.Now().UnixMilli(),
+		},
+	}, nil
 }
 
 func (c *BacktestingClient) Buy(ctx context.Context, coin, stableCoin string) (binance.OrderResult, error) {
-	panic("not implemented")
+	var res binance.OrderResult
+
+	balances, err := c.GetBalance(ctx, coin, stableCoin)
+	if err != nil {
+		return res, fmt.Errorf("failed to get balances: %w", err)
+	}
+
+	symbol := util.Symbol(coin, stableCoin)
+
+	price, err := c.GetSymbolPrice(ctx, symbol)
+	if err != nil {
+		return res, fmt.Errorf("failed to get symbol price: %w", err)
+	}
+
+	symbolInfo, err := c.GetSymbolInfos(ctx, symbol)
+	if err != nil {
+		return res, fmt.Errorf("failed to get symbol infos: %w", err)
+	}
+
+	// Calculate how much quantity we can sell
+	step := symbolInfo.LotSizeFilter().StepSize
+
+	fee, err := c.GetFee(ctx, symbol)
+	if err != nil {
+		return res, fmt.Errorf("failed fetching fee: %w", err)
+	}
+
+	quantity := decimal.RequireFromString(binance.StepSizeFormat(balances[stableCoin].Div(price), step))
+	quantityWithoutFee := quantity.Mul(decimal.NewFromInt(1).Sub(fee))
+
+	c.Logger.Info(fmt.Sprintf("I have %s %s and %s %s. I'll buy %s %s, at price %s", balances[coin], coin, balances[stableCoin], stableCoin, quantity, coin, price), zap.String("step", step))
+
+	c.balances[stableCoin] = c.balances[stableCoin].Sub(quantity.Mul(price))
+	c.balances[coin] = c.balances[coin].Add(quantityWithoutFee)
+
+	return binance.OrderResult{
+		Order: &binance_api.Order{
+			Status:           binance_api.OrderStatusTypeFilled,
+			Price:            price.String(),
+			ExecutedQuantity: quantity.String(),
+			Time:             util.Now().UnixMilli(),
+		},
+	}, nil
 }
 
 func (c *BacktestingClient) TradeLock() (func(), error) {
@@ -164,4 +262,11 @@ func (c *BacktestingClient) WaitForOrderCompletion(ctx context.Context, symbol s
 	}, nil
 }
 
-func (c *BacktestingClient) LogBalances(ctx context.Context) {}
+func (c *BacktestingClient) LogBalances(ctx context.Context) {
+	b, err := c.GetBalance(ctx)
+	if err != nil {
+		c.Logger.Error("Failed to get balances", zap.Error(err))
+	} else {
+		c.Logger.Info(fmt.Sprintf("Balances are %s", util.ToJSON(b)))
+	}
+}

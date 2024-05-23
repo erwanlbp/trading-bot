@@ -6,11 +6,11 @@ type Event struct {
 }
 
 const (
-	EventCoinsPricesFetched    = "coins_prices_fetched"
-	EventSearchedJump          = "coins_prices_fetched"
-	EventFoundUnexistingSymbol = "found_unexisting_symbol"
-	SendNotification           = "send_notification"
-	SaveBalance                = "save_balance"
+	EventCoinsPricesFetched    string = "coins_prices_fetched"
+	EventSearchedJump          string = "searched_jump"
+	EventFoundUnexistingSymbol string = "found_unexisting_symbol"
+	SendNotification           string = "send_notification"
+	SaveBalance                string = "save_balance"
 )
 
 func GenerateEvent(eventName string, payload interface{}) Event {

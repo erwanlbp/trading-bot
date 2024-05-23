@@ -1,6 +1,8 @@
 package eventbus
 
-import "context"
+import (
+	"context"
+)
 
 type Subscription struct {
 	EventsCh         chan Event
@@ -11,7 +13,7 @@ type Subscription struct {
 type EventHandler func(context.Context, Event)
 
 func newSubscription(events []string) *Subscription {
-	eventsMap := make(map[string]bool)
+	eventsMap := make(map[string]bool, len(events))
 	for _, event := range events {
 		eventsMap[event] = true
 	}
@@ -19,6 +21,11 @@ func newSubscription(events []string) *Subscription {
 		EventsCh:         make(chan Event),
 		EventsSubscribed: eventsMap,
 	}
+}
+
+func (s *Subscription) IsSubscribed(event string) bool {
+	_, ok := s.EventsSubscribed[event]
+	return ok
 }
 
 func (s *Subscription) Close() {
@@ -31,12 +38,11 @@ func (s *Subscription) Close() {
 
 // If events is not provided, will be all events for this subscription
 func (s *Subscription) Handler(ctx context.Context, handler EventHandler) {
-	for {
-		select {
-		case ev := <-s.EventsCh:
-			go handler(ctx, ev)
-		case <-ctx.Done():
-			break
-		}
+	go func() {
+		<-ctx.Done()
+		s.Close()
+	}()
+	for ev := range s.EventsCh {
+		handler(ctx, ev)
 	}
 }
