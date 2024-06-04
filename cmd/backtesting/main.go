@@ -40,14 +40,16 @@ func main() {
 
 	timeStepper := NewTimeStepper(
 		// time.Now().Add(-1*30*24*time.Hour).Truncate(time.Minute),
-		time.Date(2024, 04, 01, 00, 00, 00, 00, time.UTC).Truncate(time.Minute), // To test
-		time.Date(2024, 05, 01, 00, 00, 00, 00, time.UTC).Truncate(time.Minute), // To test
+		time.Date(2024, 03, 01, 00, 00, 00, 00, time.UTC).Truncate(time.Minute), // To test
+		time.Date(2024, 06, 01, 00, 00, 00, 00, time.UTC).Truncate(time.Minute), // To test
 		10*time.Minute,
 	)
+	klineInterval := "5m"
+
 	util.Now = timeStepper.GetTime
 
 	var startBalance decimal.Decimal = decimal.NewFromInt(10000)
-	conf := config.InitBacktesting(ctx, startBalance)
+	conf := config.InitBacktesting(ctx, startBalance, klineInterval)
 
 	logger := conf.Logger
 
@@ -73,9 +75,6 @@ func main() {
 
 	logger.Debug("Starting jump finder process")
 	conf.ProcessJumpFinder.Start(ctx)
-
-	logger.Debug("Starting save balance process")
-	conf.BalanceSaver.Start(ctx)
 
 	// Documentation/Hypothesis
 	// - We consider the fees are always binance.DefaultFee (0.998001)
@@ -116,7 +115,7 @@ func main() {
 		// util.PressKeyToContinue()
 
 		logger.Info(fmt.Sprintf("Current time is %s", timeStepper.GetTime().Format(time.RFC3339)))
-		conf.BinanceClient.LogBalances(ctx)
+		conf.BalanceSaver.SaveBalance(ctx)
 
 		// Price getter process will trigger the jump finder
 		priceGetter.FetchCoinsPrices(ctx)

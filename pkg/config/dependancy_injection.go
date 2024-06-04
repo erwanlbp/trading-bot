@@ -102,33 +102,31 @@ func Init(ctx context.Context) *Config {
 	return &conf
 }
 
-func InitBacktesting(ctx context.Context, initialBalance decimal.Decimal) *Config {
+func InitBacktesting(ctx context.Context, initialBalance decimal.Decimal, klineInterval string) *Config {
 
 	var conf Config
 
 	conf.EventBus = eventbus.NewEventBus()
 
-	simpleLogger := log.NewSimpleZapLogger()
+	conf.Logger = log.NewSimpleZapLogger()
 
 	if err := RemoveBacktestingDBFile(); err != nil {
-		simpleLogger.Fatal("Failed to remove previous backtesting DB file", zap.Error(err))
+		conf.Logger.Fatal("Failed to remove previous backtesting DB file", zap.Error(err))
 	}
 
 	cf, err := configfile.ParseConfigFile()
 	if err != nil {
-		simpleLogger.Fatal("Failed to parse config file", zap.Error(err))
+		conf.Logger.Fatal("Failed to parse config file", zap.Error(err))
 	}
 	// Backtesting is always done in production mode to have Binance prod API
 	cf.TestMode = false
 	conf.ConfigFile = &cf
 
-	telebot, err := telegram.NewClient(ctx, simpleLogger, conf.ConfigFile)
+	telebot, err := telegram.NewClient(ctx, conf.Logger, conf.ConfigFile)
 	if err != nil {
-		simpleLogger.Warn("Failed to init telegram bot (trading-bot still running)", zap.Error(err))
+		conf.Logger.Warn("Failed to init telegram bot (trading-bot still running)", zap.Error(err))
 	}
 	conf.TelegramClient = telebot
-
-	conf.Logger = simpleLogger
 
 	dbFilePath := getDBFilePath(conf.ConfigFile.TestMode)
 	sqliteDb, err := sqlite.NewDB(conf.Logger, dbFilePath)
@@ -141,7 +139,7 @@ func InitBacktesting(ctx context.Context, initialBalance decimal.Decimal) *Confi
 
 	conf.ProcessSymbolBlacklister = process.NewSymbolBlacklister(conf.Logger, conf.EventBus, conf.Repository)
 
-	conf.BinanceClient = binance_backtesting.NewClient(conf.Logger, conf.ConfigFile, conf.EventBus, conf.ProcessSymbolBlacklister, initialBalance)
+	conf.BinanceClient = binance_backtesting.NewClient(conf.Logger, conf.ConfigFile, conf.EventBus, conf.ProcessSymbolBlacklister, initialBalance, klineInterval)
 
 	conf.Service = service.NewService(conf.Logger, conf.Repository, conf.BinanceClient, conf.ConfigFile)
 

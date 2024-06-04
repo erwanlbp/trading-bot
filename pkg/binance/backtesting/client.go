@@ -24,6 +24,9 @@ type BacktestingClient struct {
 
 	realClient *binance.Client
 
+	KlineInterval string
+	TimeToAdd     time.Duration
+
 	mtx       sync.RWMutex
 	balances  map[string]decimal.Decimal
 	lastOrder *binance_api.Order
@@ -35,17 +38,24 @@ type SymbolPrices struct {
 	Prices     map[time.Time]decimal.Decimal
 }
 
-func NewClient(l *log.Logger, cf *configfile.ConfigFile, eb *eventbus.Bus, sbg binance.SymbolBlackListGetter, initialBalance decimal.Decimal) *BacktestingClient {
+func NewClient(l *log.Logger, cf *configfile.ConfigFile, eb *eventbus.Bus, sbg binance.SymbolBlackListGetter, initialBalance decimal.Decimal, klineInterval string) *BacktestingClient {
 
 	realClient := binance.NewClient(l, cf, eb, sbg)
 
+	klineIntervalDuration, err := time.ParseDuration(klineInterval)
+	if err != nil {
+		panic(fmt.Errorf("cannot parse kline interval '%s' to duration: %w", klineInterval, err))
+	}
+
 	client := BacktestingClient{
-		Logger:     l,
-		EventBus:   eb,
-		Blacklist:  sbg,
-		realClient: realClient,
-		balances:   make(map[string]decimal.Decimal),
-		prices:     make(map[string]SymbolPrices),
+		Logger:        l,
+		EventBus:      eb,
+		Blacklist:     sbg,
+		realClient:    realClient,
+		KlineInterval: klineInterval,
+		TimeToAdd:     klineIntervalDuration * 450,
+		balances:      make(map[string]decimal.Decimal),
+		prices:        make(map[string]SymbolPrices),
 	}
 
 	client.balances[cf.Bridge] = initialBalance
@@ -100,7 +110,7 @@ func (c *BacktestingClient) GetCoinsPrice(ctx context.Context, coins, altCoins [
 func (c *BacktestingClient) GetSymbolPriceAtTime(ctx context.Context, symbol string, date time.Time) (binance.CoinPrice, error) {
 	symbolPrices, ok := c.prices[symbol]
 	if !ok || symbolPrices.Start.After(date) || symbolPrices.End.Before(date) {
-		prices, err := c.realClient.GetSymbolPricesFromTime(ctx, symbol, date.Add(6*time.Hour))
+		prices, err := c.realClient.GetSymbolPricesFromTime(ctx, symbol, date.Add(c.TimeToAdd), c.KlineInterval)
 		if err != nil {
 			return binance.CoinPrice{}, err
 		}

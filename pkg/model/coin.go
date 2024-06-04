@@ -21,7 +21,7 @@ func (Coin) TableName() string {
 const CurrentCoinTableName = "current_coin_history"
 
 type CurrentCoin struct {
-	Coin      string    `gorm:"primaryKey"`
+	Coin      string
 	Timestamp time.Time `gorm:"primaryKey"`
 }
 

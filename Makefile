@@ -8,7 +8,7 @@ build-all:
 
 # Start the bot
 run:
-	go run cmd/${cmd}/main.go
+	go run -race cmd/${cmd}/main.go
 
 # Detect linting errors
 lint:

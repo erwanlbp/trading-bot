@@ -52,8 +52,6 @@ func (p *JumpFinder) Start(ctx context.Context) {
 func (p *JumpFinder) FindJump(ctx context.Context) {
 	logger := p.Logger.With(zap.String("process", "jump_finder"))
 
-	logger.Debug("Searching for jump ...")
-
 	// Get pairsRatio from current prices
 	pairsRatio, err := p.CalculateRatios()
 	if err != nil {
@@ -95,7 +93,7 @@ func (p *JumpFinder) FindJump(ctx context.Context) {
 
 	wantedGain := decimal.NewFromInt(1).Add(p.ConfigFile.Jump.GetNeededGain(currentCoin.Timestamp))
 
-	logger.Debug(fmt.Sprintf("Need a gain of %s", wantedGain))
+	// logger.Debug(fmt.Sprintf("Need a gain of %s", wantedGain))
 
 	type BJ struct {
 		Pair model.PairWithTickerRatio
@@ -144,7 +142,7 @@ func (p *JumpFinder) FindJump(ctx context.Context) {
 		}
 
 		if diff.LessThan(wantedGain) {
-			logger.Debug(fmt.Sprintf("❌ Pair %s is not good", pairRatio.Pair.LogSymbol()), zap.String("current_ratio", pairRatio.Ratio.String()), zap.String("last_jump_ratio", lastPairRatio.String()), zap.String("diff", diff.String()), zap.String("fee", feeMultiplier.String()), zap.String("threshold", wantedGain.String()))
+			// logger.Debug(fmt.Sprintf("❌ Pair %s is not good", pairRatio.Pair.LogSymbol()), zap.String("current_ratio", pairRatio.Ratio.String()), zap.String("last_jump_ratio", lastPairRatio.String()), zap.String("diff", diff.String()), zap.String("fee", feeMultiplier.String()), zap.String("threshold", wantedGain.String()))
 			continue
 		}
 
@@ -165,7 +163,7 @@ func (p *JumpFinder) FindJump(ctx context.Context) {
 	}
 
 	if bestJump == nil {
-		logger.Debug(fmt.Sprintf("No jump found from coin %s", currentCoin.Coin))
+		// logger.Debug(fmt.Sprintf("No jump found from coin %s", currentCoin.Coin))
 		return
 	}
 

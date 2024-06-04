@@ -107,7 +107,7 @@ func (c *Client) GetSymbolPriceAtTime(ctx context.Context, symbol string, date t
 	}, nil
 }
 
-func (c *Client) GetSymbolPricesFromTime(ctx context.Context, symbol string, date time.Time) ([]CoinPrice, error) {
+func (c *Client) GetSymbolPricesFromTime(ctx context.Context, symbol string, date time.Time, interval string) ([]CoinPrice, error) {
 
 	// TODO c'est moche de faire ca comme ca lol mais ca marche
 	symbols := GetSymbols([]string{symbol}, []string{""}, c.SymbolBlackList)
@@ -119,7 +119,7 @@ func (c *Client) GetSymbolPricesFromTime(ctx context.Context, symbol string, dat
 
 	prices, err := c.client.NewKlinesService().
 		Symbol(symbol).
-		Interval("1m").
+		Interval(interval).
 		EndTime(date.UnixMilli()).
 		Do(ctx)
 	if err != nil {
