@@ -1,6 +1,6 @@
 module github.com/erwanlbp/trading-bot
 
-go 1.20
+go 1.23
 
 require (
 	github.com/WinterYukky/gorm-extra-clause-plugin v0.2.0
