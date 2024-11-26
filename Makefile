@@ -12,7 +12,7 @@ run:
 
 # Detect linting errors
 lint:
-	${GOPATH}/bin/golangci-lint run
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run
 
 # Run the tests
 test:
