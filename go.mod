@@ -1,6 +1,6 @@
 module github.com/erwanlbp/trading-bot
 
-go 1.23
+go 1.25.0
 
 require (
 	github.com/WinterYukky/gorm-extra-clause-plugin v0.2.1
@@ -34,5 +34,5 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
-	golang.org/x/image v0.22.0 // indirect
+	golang.org/x/image v0.38.0 // indirect
 )
